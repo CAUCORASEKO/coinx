@@ -92,7 +92,14 @@
                 </tbody>
             </table>
         </div>
-        <button class="logout-button" onclick="window.location.href='{% url 'logout' %}'">Logout</button>
+
+        
+        <!-- Cambié el botón de logout a un formulario POST -->
+        <form method="post" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="logout-button">Logout</button>
+            
+        </form>
     </div>
 </body>
 </html>
