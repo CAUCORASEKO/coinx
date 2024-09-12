@@ -1,4 +1,4 @@
-/* Estilos generales */
+/* General styles */
 body {
     font-family: 'Arial', sans-serif;
     background-color: #f4f6f9;
@@ -15,23 +15,23 @@ header {
 
 header nav .container {
     display: flex;
-    justify-content: space-between; /* Para que los botones estén a la derecha y el logo a la izquierda */
-    align-items: center; /* Alinea verticalmente el logo y los botones */
-    padding: 20px 40px; /* Ajuste para que se vea más espacioso */
+    justify-content: space-between; /* niin, että painikkeet ovat oikealla ja logo vasemmalla */
+    align-items: center; /*Kohdista logo ja painikkeet pystysuoraan*/
+    padding: 20px 40px; /* Säädä niin, että se näyttää tilavammalta */
 }
 
 .logo-container {
     display: flex;
-    align-items: center; /* Asegura que el logo esté alineado verticalmente */
+    align-items: center; /* Varmistaa, että logo on pystysuorassa linjassa */
 }
 
 .logo-img {
-    width: 120px; /* Ajusta el tamaño del logo */
+    width: 120px; /* Säädä logon kokoa */
 }
 
 .nav-buttons {
     display: flex;
-    gap: 20px; /* Espacio entre los botones */
+    gap: 20px; /* Painikkeiden välissä oleva tila */
 }
 
 .nav-buttons .button {
@@ -63,7 +63,7 @@ header nav .container {
     background-color: #0056b3;
 }
 
-/* Para pantallas pequeñas */
+/* Pienille näytöille */
 @media (max-width: 768px) {
     header nav .container {
         flex-direction: column;
@@ -81,7 +81,7 @@ header nav .container {
 
 
 
-/* Contenedor principal */
+/* Pääsäiliö */
 .main-container {
     display: flex;
     justify-content: space-between;
@@ -176,7 +176,7 @@ footer {
 }
 
 .social-media {
-    margin-bottom: 30px; /* Añadir espacio entre redes sociales y los botones de la tienda */
+    margin-bottom: 30px; /* Lisää tilaa sosiaalisten verkostojen ja ostopainikkeiden väliin */
 }
 
 .social-media a {
@@ -190,7 +190,7 @@ footer {
 }
 
 .app-links {
-    margin-top: 20px; /* Añadir espacio en la parte superior de los botones de la tienda */
+    margin-top: 20px; /* Lisää tilaa myymäläpainikkeiden yläosaan */
 }
 
 .app-links a {
@@ -210,7 +210,7 @@ footer {
     }
 }
 
-/* Estilos para la página de Login */
+/*  Login */
 .login-container {
     max-width: 400px;
     margin: 80px auto;
@@ -273,7 +273,7 @@ footer {
     text-decoration: underline;
 }
 
-/* Estilos para la página de registro */
+/* register */
 .register-container {
     max-width: 400px;
     margin: 50px auto;
@@ -336,6 +336,81 @@ footer {
 }
 
 .register-container a:hover {
+    text-decoration: underline;
+}
+
+.form-errors {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.form-errors ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+/* reset password */
+.reset-password-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 40px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+}
+
+.reset-password-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.reset-password-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.reset-password-container form input[type="email"] {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.reset-password-container form button {
+    background-color: #007bff;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    width: 100%;
+}
+
+.reset-password-container form button:hover {
+    background-color: #0056b3;
+}
+
+.reset-password-container p {
+    text-align: center;
+    font-size: 14px;
+}
+
+.reset-password-container a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.reset-password-container a:hover {
     text-decoration: underline;
 }
 
