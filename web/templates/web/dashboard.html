@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+    <title>Dashboard</title>
+    <style>
+        /* Estilos adicionales para mejorar el diseño */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        .dashboard-container {
+            width: 90%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .account-info {
+            margin: 20px 0;
+        }
+        .balance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .balance-table th, .balance-table td {
+            padding: 15px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .balance-table th {
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        .balance-table td {
+            background-color: #fff;
+        }
+        .logout-button {
+            float: right;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .logout-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2>Welcome to your Dashboard, {{ user.username }}</h2>
+
+        <div class="account-info">
+            <h3>Account Balance (Spot):</h3>
+            <p>{{ spot_balance }} USD</p>
+
+            <h3>Account Balance (Futures):</h3>
+            <p>{{ futures_balance }} USD</p>
+
+            <h3>Detailed Futures Balances:</h3>
+            <table class="balance-table">
+                <thead>
+                    <tr>
+                        <th>Asset</th>
+                        <th>Wallet Balance</th>
+                        <th>Available Balance</th>
+                        <th>Unrealized PnL</th>
+                        <th>Margin Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for balance in detailed_futures_balances %}
+                    <tr>
+                        <td>{{ balance.asset }}</td>
+                        <td>{{ balance.wallet_balance }} USD</td>
+                        <td>{{ balance.available_balance }} USD</td>
+                        <td>{{ balance.unrealized_pnl }} USD</td>
+                        <td>{{ balance.margin_balance }} USD</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <button class="logout-button" onclick="window.location.href='{% url 'logout' %}'">Logout</button>
+    </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+    <title>Inversor</title>
+</head>
+<body>
+    {% include 'web/header.html' %}
+
+    <main class="main-container">
+        <div class="text-content">
+            <h1>Investment monitoring and control platform</h1>
+            <p>Cutting-edge trading automation for novices and pros. Thousands of strategies. User-friendly bots. 24/7 Support.</p>
+            <a href="{% url 'register' %}" class="button primary large">Start Trial</a>
+            <p>14 days free trial. No credit card required.</p>
+        </div>
+        <div class="image-container">
+            <img src="{% static 'web/front.png' %}" alt="Trading Dashboard">
+        </div>
+    </main>
+
+    {% include 'web/footer.html' %}
+</body>
+</html>
+
