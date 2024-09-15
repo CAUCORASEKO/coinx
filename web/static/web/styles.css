@@ -426,3 +426,60 @@ footer {
     list-style-type: none;
     padding: 0;
 }
+
+/* Username Recovery (estilos similares al login) */
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 100px auto;
+    background-color: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.login-container h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #333;
+}
+
+.login-container label {
+    display: block;
+    font-size: 14px;
+    text-align: left;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.login-container input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.login-container input:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+.login-container .button.primary {
+    width: 100%;
+    background-color: #007bff;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.login-container .button.primary:hover {
+    background-color: #0056b3;
+}

@@ -1,6 +1,7 @@
+import os
+import sys
 from pathlib import Path
 from cryptography.fernet import Fernet
-import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -63,9 +64,13 @@ WSGI_APPLICATION = 'wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': BASE_DIR / 'inversor-main' /'db.sqlite3',
     }
 }
+
+# Debug code to print BASE_DIR and DATABASE path
+print(f"BASE_DIR: {BASE_DIR}", file=sys.stderr)
+print(f"DATABASE PATH: {DATABASES['default']['NAME']}", file=sys.stderr)
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
