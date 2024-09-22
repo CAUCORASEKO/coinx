@@ -1,23 +1,32 @@
 from django.shortcuts import render, redirect, get_object_or_404, HttpResponse
 from django.conf import settings
-from .forms import RegistrationForm, ApiKeyForm  # Añadir ApiKeyForm
-from django.contrib.auth.models import User
-from .models import UserProfile
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.contrib import messages
+from .forms import RegistrationForm, ApiKeyForm
+from .models import UserProfile
 from .utils import APIs  # Importar la clase APIs desde utils.py
 from cryptography.fernet import Fernet  # Importar para el cifrado
 from binance.client import Client  # Importar el cliente de Binance
-import uuid
 import logging
 
+# Configuración de logger
 logger = logging.getLogger(__name__)
+
+# -----------------------------
+# Vistas de páginas generales
+# ----------------------------
 
 # Página de inicio
 def index(request):
     return render(request, 'web/index.html')
+
+
+# -------------------------------------------
+# Vistas de autenticación y registro de usuarios
+# -------------------------------------------
 
 # Vista de registro de usuarios
 def register_view(request):
@@ -58,6 +67,7 @@ def register_view(request):
 
     return render(request, 'web/register.html', {'form': form})
 
+
 # Función para enviar email de confirmación
 def send_confirmation_email(user):
     user_profile = UserProfile.objects.get(user=user)
@@ -74,6 +84,7 @@ def send_confirmation_email(user):
         fail_silently=False,
     )
 
+
 # Vista para confirmar el email
 def confirm_email(request, token):
     try:
@@ -86,6 +97,11 @@ def confirm_email(request, token):
     except UserProfile.DoesNotExist:
         messages.error(request, 'Invalid or expired token.')
         return redirect('register')
+
+
+# --------------------------
+# Vistas del dashboard
+# --------------------------
 
 # Vista del dashboard
 @login_required
@@ -111,8 +127,8 @@ def dashboard_view(request):
     })
 
 
-
 # Vista para actualizar claves API
+@login_required
 def update_api_keys(request):
     if request.method == 'POST':
         form = ApiKeyForm(request.POST)
@@ -132,21 +148,29 @@ def update_api_keys(request):
 
     return render(request, 'web/update_api_keys.html', {'form': form})
 
+
+# -----------------------------
+# Recuperación de nombre de usuario
+# -----------------------------
+
 # Vista para recuperación de nombre de usuario
 def username_recovery_view(request):
     if request.method == 'POST':
         email = request.POST.get('email')
         try:
             user = User.objects.get(email=email)
+            # Enviar correo con el nombre de usuario
             send_mail(
                 'Your Username',
                 f'Hello, your username is {user.username}.',
-                'noreply@yourdomain.com',  # Ajustar a tu dominio o configuración de email
+                'noreply@yourdomain.com',  # Configura esto correctamente según tu servidor de correos
                 [email],
                 fail_silently=False,
             )
-            return HttpResponse('An email with your username has been sent to your email address.')
+            messages.success(request, 'An email with your username has been sent to your email address.')
+            return redirect('index')  # Redirige al inicio en lugar de mostrar otra página
         except User.DoesNotExist:
-            return HttpResponse('No user found with this email address.')
+            messages.error(request, 'No user found with that email address.')
+            return render(request, 'web/username_recovery.html')
 
     return render(request, 'web/username_recovery.html')

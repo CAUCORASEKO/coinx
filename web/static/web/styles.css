@@ -483,3 +483,146 @@ footer {
 .login-container .button.primary:hover {
     background-color: #0056b3;
 }
+
+/* Estilos para password_reset_done.html */
+.reset-password-done-container {
+    max-width: 600px;
+    margin: 100px auto;
+    padding: 40px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.reset-password-done-container h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #333;
+}
+
+.reset-password-done-container p {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* Estilos para password_reset_done.html */
+.reset-password-done-container {
+    max-width: 600px;
+    margin: 100px auto;
+    padding: 40px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.reset-password-done-container h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #333;
+}
+
+.reset-password-done-container p {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+
+/* Estilos para password_reset_confirm.html */
+.reset-password-container {
+    max-width: 400px;
+    margin: 80px auto;
+    padding: 40px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.reset-password-container h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #333;
+}
+
+.reset-password-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.reset-password-container form input[type="password"] {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.reset-password-container form button {
+    background-color: #007bff;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    width: 100%;
+}
+
+.reset-password-container form button:hover {
+    background-color: #0056b3;
+}
+
+.reset-password-container p {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 20px;
+}
+
+/* Estilos para password_reset_complete.html */
+.password-reset-complete-container {
+    max-width: 600px;
+    margin: 100px auto;
+    padding: 40px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.password-reset-complete-container h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #333;
+}
+
+.password-reset-complete-container p {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 30px;
+}
+
+.password-reset-complete-container .button.primary {
+    background-color: #007bff;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.password-reset-complete-container .button.primary:hover {
+    background-color: #0056b3;
+}

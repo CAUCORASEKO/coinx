@@ -110,13 +110,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    # Email configuration for sending real emails
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'latribubooking@gmail.com')
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+    EMAIL_HOST_USER = 'latribubooking@gmail.com'  # Tu dirección de correo de Gmail
+    EMAIL_HOST_PASSWORD = 'your_email_Password'  # Tu contraseña de Gmail
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # El correo desde el que se enviarán los emails
 
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'

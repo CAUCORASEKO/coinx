@@ -1,6 +1,6 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views
 from web import views
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     # Home and registration
@@ -12,9 +12,6 @@ urlpatterns = [
     # Login and logout
     path('accounts/login/', auth_views.LoginView.as_view(template_name='web/registration/login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='index'), name='logout'),
-
-    # Dashboard
-    path('dashboard/', views.dashboard_view, name='dashboard'),
 
     # Update API keys
     path('update-api-keys/', views.update_api_keys, name='update_api_keys'),
@@ -32,7 +29,7 @@ urlpatterns = [
     path('reset/done/', 
          auth_views.PasswordResetCompleteView.as_view(template_name='web/password_reset_complete.html'), 
          name='password_reset_complete'),
-    
-    # Forgot Username
-    path('username-recovery/', views.username_recovery_view, name='username_recovery'),
+
+    # Username recovery URLs
+    path('username-recovery/', views.username_recovery_view, name='username_recovery'),  
 ]

@@ -1,0 +1,22 @@
+<!---username_recovery_done.html  -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+    <title>Username Recovery Success</title>
+</head>
+<body>
+    {% include 'web/header.html' %}
+    
+    <main class="form-container">
+        <div class="form-box">
+            <h2 class="form-title">Your username has been sent to your email address.</h2>
+            <a href="{% url 'login' %}" class="button primary">Return to Login</a>
+        </div>
+    </main>
+
+    {% include 'web/footer.html' %}
+</body>
+</html>
