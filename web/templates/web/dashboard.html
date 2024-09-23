@@ -31,12 +31,10 @@
 
             <div class="widget signal-widget">
                 <h3>Trading Signal</h3>
-                <p>{{ trading_signal_text }}</p>
+                <!-- Estado del análisis de señal -->
+                <p id="signal-status">No signal found yet.</p> <!-- Estado inicial -->
                 <div class="search-container">
-                    <form method="post" action="{% url 'get_signal' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="button primary">search</button>
-                    </form>
+                    <button id="signal-button" class="button primary">Search</button>
                 </div>
             </div>
         </div>
@@ -88,8 +86,10 @@
     </div>
 
     {% include 'web/footer.html' %}
+
 </body>
 
+<!-- Script para manejar el gráfico de asignación de cuentas -->
 <script>
     var ctx = document.getElementById('accountChart').getContext('2d');
     var accountChart = new Chart(ctx, {
@@ -112,5 +112,29 @@
     });
 </script>
 
-</html>
+<!-- Script para manejar el estado del botón y la señal -->
+<script>
+document.getElementById("signal-button").addEventListener("click", function() {
+    // Cambiar el estado del mensaje a "Searching..."
+    document.getElementById("signal-status").innerHTML = "<p>Searching for signals...</p>";
 
+    // Enviar la solicitud POST al servidor para buscar la señal
+    fetch("{% url 'get_signal' %}", {
+        method: "POST",
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Si se recibe la señal, mostrarla
+        document.getElementById("signal-status").innerHTML = "<p>Signal found: " + data.signal + "</p>";
+    })
+    .catch(error => {
+        console.error('Error fetching the signal:', error);
+        document.getElementById("signal-status").innerHTML = "<p>Error finding signal.</p>";
+    });
+});
+</script>
+
+</html>

@@ -1,4 +1,5 @@
-from django.shortcuts import render, redirect, get_object_or_404, HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404, HttpResponse  # Sin JsonResponse aquí
+from django.http import JsonResponse  # Importar JsonResponse correctamente desde django.http
 from django.conf import settings
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
@@ -11,6 +12,8 @@ from .utils import APIs  # Importar la clase APIs desde utils.py
 from cryptography.fernet import Fernet  # Importar para el cifrado
 from binance.client import Client  # Importar el cliente de Binance
 import logging
+from .signals import analyze_trade, get_btc_data, get_symbol_data, select_random_symbols, get_client_from_user  # Importar funciones de signals.py
+
 
 # Configuración de logger
 logger = logging.getLogger(__name__)
@@ -103,10 +106,6 @@ def confirm_email(request, token):
 # Vistas del dashboard
 # --------------------------
 
-# --------------------------
-# Vistas del dashboard
-# --------------------------
-
 @login_required
 def dashboard_view(request):
     user_profile = get_object_or_404(UserProfile, user=request.user)
@@ -128,6 +127,45 @@ def dashboard_view(request):
         'futures_balance': futures_balance,
         'detailed_futures_balances': detailed_futures_balances
     })
+
+
+# --- AGREGAR AQUÍ LA VISTA PARA OBTENER SEÑALES DE TRADING ---
+
+# Vista para obtener señales de trading
+@login_required
+def get_signal(request):
+    if request.method == 'POST':
+        try:
+            # Obtener el cliente de Binance usando las claves API del usuario
+            client = get_client_from_user(request.user)
+
+            # Obtener los datos de BTC
+            btc_data_1h = get_btc_data(client, '1h')
+            btc_data_1d = get_btc_data(client, '1d')
+
+            # Seleccionar símbolos aleatorios
+            symbols = select_random_symbols(client)
+
+            # Iniciar el análisis de los símbolos seleccionados
+            signal = None
+            for symbol in symbols:
+                symbol_data = get_symbol_data(client, symbol)
+                signal = analyze_trade(symbol, symbol_data, btc_data_1h, btc_data_1d)
+
+                if signal:  # Si se encuentra una señal, romper el ciclo
+                    break
+
+            # Si se encuentra una señal, devolverla
+            if signal:
+                return JsonResponse({'signal': signal})
+            else:
+                return JsonResponse({'signal': 'No signal found'})
+
+        except Exception as e:
+            logger.error(f"Error al obtener señal: {e}")
+            return JsonResponse({'signal': 'Error occurred during analysis'}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 
 # Vista para actualizar claves API
@@ -177,3 +215,7 @@ def username_recovery_view(request):
             return render(request, 'web/username_recovery.html')
 
     return render(request, 'web/username_recovery.html')
+
+
+
+
