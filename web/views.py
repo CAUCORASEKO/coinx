@@ -103,7 +103,10 @@ def confirm_email(request, token):
 # Vistas del dashboard
 # --------------------------
 
-# Vista del dashboard
+# --------------------------
+# Vistas del dashboard
+# --------------------------
+
 @login_required
 def dashboard_view(request):
     user_profile = get_object_or_404(UserProfile, user=request.user)

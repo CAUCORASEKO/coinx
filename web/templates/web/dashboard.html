@@ -3,103 +3,114 @@
 <head>
     {% load static %}
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+    <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- load Chart.js -->
     <title>Dashboard</title>
-    <style>
-        /* Estilos adicionales para mejorar el diseño */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
-        }
-        .dashboard-container {
-            width: 90%;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            text-align: center;
-            color: #333;
-        }
-        .account-info {
-            margin: 20px 0;
-        }
-        .balance-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        .balance-table th, .balance-table td {
-            padding: 15px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-        .balance-table th {
-            background-color: #f4f6f9;
-            color: #333;
-        }
-        .balance-table td {
-            background-color: #fff;
-        }
-        .logout-button {
-            float: right;
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .logout-button:hover {
-            background-color: #0056b3;
-        }
-    </style>
 </head>
 <body>
+    {% include 'web/header.html' %}
+
+    <!-- Contenedor Principal del Dashboard -->
     <div class="dashboard-container">
-        <h2>Welcome to your Dashboard, {{ user.username }}</h2>
+        <!-- Primera Fila: Gráficos de Account Allocation, Portfolio Change y Trading Signal -->
+        <div class="dashboard-grid">
+            <div class="widget balance-widget">
+                <h3>Accounts Allocation</h3>
+                <div id="balance-chart">
+                    <canvas id="accountChart"></canvas> <!-- Gráfico circular -->
+                </div>
+            </div>
 
-        <div class="account-info">
-            <h3>Account Balance (Spot):</h3>
-            <p>{{ spot_balance }} USD</p>
+            <div class="widget portfolio-widget">
+                <h3>Portfolio Change</h3>
+                <p>${{ portfolio_change }} ({{ portfolio_change_percentage }}%)</p>
+                <!-- Gráfico de línea futura aquí -->
+            </div>
 
-            <h3>Account Balance (Futures):</h3>
-            <p>{{ futures_balance }} USD</p>
+            <div class="widget signal-widget">
+                <h3>Trading Signal</h3>
+                <p>{{ trading_signal_text }}</p>
+                <div class="search-container">
+                    <form method="post" action="{% url 'get_signal' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="button primary">search</button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-            <h3>Detailed Futures Balances:</h3>
-            <table class="balance-table">
+        <!-- Tabla de monedas -->
+        <div class="widget coin-widget">
+            <h3>Coins ({{ coins_count }})</h3>
+            <table class="coin-table">
                 <thead>
                     <tr>
-                        <th>Asset</th>
-                        <th>Wallet Balance</th>
-                        <th>Available Balance</th>
-                        <th>Unrealized PnL</th>
-                        <th>Margin Balance</th>
+                        <th>Name</th>
+                        <th>Accounts</th>
+                        <th>Total</th>
+                        <th>Available</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Price (24h)</th>
                     </tr>
                 </thead>
                 <tbody>
-                {% for balance in detailed_futures_balances %}
+                    {% for coin in coins %}
                     <tr>
-                        <td>{{ balance.asset }}</td>
-                        <td>{{ balance.wallet_balance }} USD</td>
-                        <td>{{ balance.available_balance }} USD</td>
-                        <td>{{ balance.unrealized_pnl }} USD</td>
-                        <td>{{ balance.margin_balance }} USD</td>
+                        <td>{{ coin.name }}</td>
+                        <td>{{ coin.accounts }}</td>
+                        <td>{{ coin.total }}</td>
+                        <td>{{ coin.available }}</td>
+                        <td>{{ coin.quantity }}</td>
+                        <td>{{ coin.price }}</td>
+                        <td>{{ coin.price_24h }}</td>
                     </tr>
-                {% endfor %}
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        
-        <!-- Cambié el botón de logout a un formulario POST -->
+        <!-- Paginación -->
+        <div class="pagination">
+            {% if is_paginated %}
+                <span class="page-link">{% if coins.has_previous %}<a href="?page={{ coins.previous_page_number }}">Previous</a>{% endif %}</span>
+                <span class="page-link">{% if coins.has_next %}<a href="?page={{ coins.next_page_number }}">Next</a>{% endif %}</span>
+            {% endif %}
+        </div>
+
+        <!-- Botón de logout -->
         <form method="post" action="{% url 'logout' %}" class="logout-form">
             {% csrf_token %}
             <button type="submit" class="logout-button">Logout</button>
-            
         </form>
     </div>
+
+    {% include 'web/footer.html' %}
 </body>
+
+<script>
+    var ctx = document.getElementById('accountChart').getContext('2d');
+    var accountChart = new Chart(ctx, {
+        type: 'doughnut', 
+        data: {
+            labels: ['Spot Balance', 'Futures Balance'],
+            datasets: [{
+                data: [{{ spot_balance }}, {{ futures_balance }}], 
+                backgroundColor: ['#007bff', '#28a745'],
+                borderColor: ['#fff'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { position: 'bottom' },
+            title: { display: true, text: 'Accounts Allocation' }
+        }
+    });
+</script>
+
 </html>
+

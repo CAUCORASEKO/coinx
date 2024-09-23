@@ -30,6 +30,7 @@ urlpatterns = [
 
     # Dashboard
     path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('get_signal/', views.dashboard_view, name='get_signal'),
 
     # Update API keys
     path('update-api-keys/', views.update_api_keys, name='update_api_keys'),  # Add this line for the API keys update view
