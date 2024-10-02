@@ -835,70 +835,45 @@ def select_random_symbols():
     random.shuffle(symbols)
     return symbols[:5]
 
-
-
-# Configuración del logger
-logger = logging.getLogger(__name__)
-
 def perform_trade_analysis():
-    """
-    Función principal para el análisis de trading. Controla los ciclos de análisis y la lógica para evitar 
-    la repetición de análisis sobre los mismos símbolos y el uso excesivo de la API.
-    """
     logger.info("Iniciando análisis de trading avanzado")
-    
-    # Memoria de símbolos analizados
     symbol_memory = set()
-    
-    # Ciclo principal de análisis
+
     while True:
         try:
-            # Obtener datos de BTC en intervalos de 1 hora y 1 día
             btc_data_1h = get_btc_data(KLINE_INTERVAL)
             btc_data_1d = get_btc_data('1d')
-            
-            # Selección aleatoria de símbolos
             symbols = select_random_symbols()
 
-            # Análisis por cada símbolo
             for symbol in symbols:
                 if symbol in symbol_memory:
                     continue  # Evitar analizar el mismo símbolo repetidamente
-                symbol_memory.add(symbol)  # Añadir el símbolo a la memoria
+                symbol_memory.add(symbol)
                 
                 try:
-                    # Obtener datos del símbolo
                     data = get_symbol_data(symbol)
-                    
                     if data is None:
                         logger.error(f"Error: Datos nulos obtenidos para {symbol}, omitiendo análisis.")
                         continue
 
-                    # Análisis del trade
                     if analyze_trade(symbol, data, btc_data_1h, btc_data_1d):
                         logger.info(f"Se encontró una señal para {symbol}")
-                        # Espera hasta que el usuario presione 'search'
-                        time.sleep(10)
+                        time.sleep(900)
                     else:
                         logger.info(f"No se encontró una señal adecuada para {symbol}")
-                        # Agregar un pequeño retraso para evitar la sobrecarga de la API
-                        time.sleep(2)
-
+                        time.sleep(1)
                 except Exception as e:
                     logger.error(f"Error al analizar {symbol}: {e}")
                     continue
 
-            logger.info("Ciclo completo, esperando antes de la siguiente iteración.")
-            # Espera entre ciclos para evitar la saturación de la API
+            logger.info("Ciclo completo, esperando antes de la siguiente iteración")
             time.sleep(20)
-            
         except Exception as e:
             logger.error(f"Error en el ciclo principal: {str(e)}")
-            # Espera más tiempo si ocurre un error en el ciclo principal
             time.sleep(60)
 
 
+
 if __name__ == "__main__":
-    # Iniciar el análisis de trading en un hilo separado
     thread = threading.Thread(target=perform_trade_analysis)
     thread.start()

@@ -31,5 +31,8 @@ urlpatterns = [
          name='password_reset_complete'),
 
     # Username recovery URLs
-    path('username-recovery/', views.username_recovery_view, name='username_recovery'),  
+    path('username-recovery/', views.username_recovery_view, name='username_recovery'),
+
+    # Signal generation (nuevo)
+    path('get_signal/', views.get_signal, name='get_signal'),  # Esta es la nueva ruta que faltaba
 ]

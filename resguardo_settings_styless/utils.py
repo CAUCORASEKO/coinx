@@ -61,19 +61,3 @@ class APIs:
                 total_futures_balance += available_balance  # Sumamos solo el balance disponible
 
         return total_futures_balance, futures_balances
-
-    @classmethod
-    def get_futures_account_info(cls, futures_client):
-        """Obtiene la información de la cuenta de Futuros"""
-        try:
-            # Llamada a la API de Binance
-            response = futures_client.futures_account()
-            # Validar si la respuesta es un dict válido
-            if not isinstance(response, dict):
-                logger.error(f"Respuesta inesperada de la API: {response}")
-                return None
-            
-            return response
-        except BinanceAPIException as e:
-            logger.error(f"Error al obtener datos de la cuenta de Futuros: {e}")
-            return None

@@ -1,5 +1,3 @@
-import logging
-import pandas as pd
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.conf import settings
@@ -10,13 +8,15 @@ from django.core.mail import send_mail
 from django.contrib import messages
 from web.forms import RegistrationForm, ApiKeyForm  # Asegúrate de que forms.py está bien ubicado
 from web.models import UserProfile
-from web.utils import APIs  # Importar la clase APIs desde utils.py
+from .utils import APIs  # Importar la clase APIs desde utils.py
 from cryptography.fernet import Fernet  # Importar para el cifrado
-from trade_signal import get_btc_data, get_symbol_data, select_random_symbols, analyze_trade
+from trade_signal import analyze_trade, perform_trade_analysis, get_btc_data, get_symbol_data, select_random_symbols
 from web.management.commands.global_client import get_global_client  # Importar get_global_client
+import logging
 
 # Configuración del logger
 logger = logging.getLogger(__name__)
+
 
 # -----------------------------
 # Vistas de páginas generales
@@ -41,7 +41,7 @@ def register_view(request):
             user.is_active = False
             user.save()
 
-            # Encriptar y almacenar las claves API
+            # Encrypt and store API keys
             fernet = Fernet(settings.ENCRYPTION_KEY)
             api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode())
             api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode())
@@ -63,7 +63,7 @@ def register_view(request):
             # Enviar email de confirmación
             send_confirmation_email(user)
 
-            messages.success(request, 'Por favor, revisa tu correo electrónico para confirmar tu cuenta.')
+            messages.success(request, 'Please check your email to confirm your account.')
             return redirect('login')
     else:
         form = RegistrationForm()
@@ -80,8 +80,8 @@ def send_confirmation_email(user):
 
     # Enviar el email
     send_mail(
-        'Confirma tu registro',
-        f'Haz clic en el enlace para confirmar tu correo: {full_confirmation_url}',
+        'Confirm your registration',
+        f'Click the link to confirm your email: {full_confirmation_url}',
         settings.EMAIL_HOST_USER,
         [user.email],
         fail_silently=False,
@@ -95,10 +95,10 @@ def confirm_email(request, token):
         user = user_profile.user
         user.is_active = True
         user.save()
-        messages.success(request, 'Tu cuenta ha sido confirmada. Ya puedes iniciar sesión.')
+        messages.success(request, 'Your account has been confirmed. You can now log in.')
         return redirect('login')
     except UserProfile.DoesNotExist:
-        messages.error(request, 'Token inválido o expirado.')
+        messages.error(request, 'Invalid or expired token.')
         return redirect('register')
 
 
@@ -116,49 +116,34 @@ def dashboard_view(request):
     spot_client = APIs.get_spot_client_instance(api_key, api_secret)
     futures_client = APIs.get_futures_client_instance(api_key, api_secret)
 
-    # Obtener balances de Spot y Futuros
+    # Obtener balances de Spot
     spot_balance = APIs.get_spot_balance(spot_client)
+
+    # Obtener balances de Futuros
     futures_balance, detailed_futures_balances = APIs.get_futures_balance(futures_client)
 
-    # Calcular el cambio en el portafolio
-    portfolio_change = futures_balance - spot_balance
+    # Calcular el cambio en el portafolio (esto es solo un ejemplo)
+    portfolio_change = futures_balance - spot_balance  # Modificar según tu lógica real
     portfolio_change_percentage = (portfolio_change / spot_balance) * 100 if spot_balance != 0 else 0
 
-    # Simulación de datos de monedas (puedes reemplazarlo con datos reales)
+    # Simulación de datos de monedas (debes obtenerlo desde la API)
     coins = [
         {'name': 'BTC', 'accounts': 'Spot', 'total': 1.2, 'available': 0.8, 'quantity': 1.2, 'price': 50000, 'price_24h': 49500},
         {'name': 'ETH', 'accounts': 'Futures', 'total': 2.5, 'available': 2.0, 'quantity': 2.5, 'price': 3000, 'price_24h': 3100},
+        # Añade más monedas según sea necesario
     ]
     coins_count = len(coins)
 
-    # Obtener señales desde `trade_signal.py`
-    signal_data = None
-    try:
-        btc_data_1h = get_btc_data('1h', futures_client)  # Usamos `get_btc_data` de `trade_signal.py`
-        btc_data_1d = get_btc_data('1d', futures_client)
-        symbols = select_random_symbols(futures_client)
-
-        for symbol in symbols:
-            symbol_data = get_symbol_data(symbol, futures_client)
-            if symbol_data:
-                signal_data = analyze_trade(symbol, symbol_data, btc_data_1h, btc_data_1d, futures_client)
-                if signal_data:  # Si encuentra una señal, se rompe el ciclo
-                    break
-    except Exception as e:
-        logger.error(f"Error obteniendo señales: {e}")
-
-    # Renderizar la plantilla del dashboard con las señales y datos
+    # Pasar todo el contexto de una vez en un solo render
     return render(request, 'web/dashboard.html', {
         'spot_balance': spot_balance,
         'futures_balance': futures_balance,
         'detailed_futures_balances': detailed_futures_balances,
         'portfolio_change': portfolio_change,
         'portfolio_change_percentage': portfolio_change_percentage,
-        'coins': coins,
-        'coins_count': coins_count,
-        'signal': signal_data,  # Enviar las señales al template
+        'coins': coins,  # Añadir la lista de monedas
+        'coins_count': coins_count  # Añadir el conteo de monedas
     })
-
 
 
 # --------------------------
@@ -167,54 +152,42 @@ def dashboard_view(request):
 
 
 @login_required
-
 def get_signal(request):
     if request.method == 'POST':
         try:
-            # Obtener el cliente global de Binance
+            # Obtener el cliente de Binance usando el cliente global
             client = get_global_client()
 
-            if client is None:
-                logger.error("No se pudo inicializar el cliente global de Binance.")
-                return JsonResponse({'signal': 'Error al inicializar el cliente'}, status=500)
-
             # Iniciar ciclo de búsqueda de señales
-            btc_data_1h = get_btc_data('1h')
-            btc_data_1d = get_btc_data('1d')
+            btc_data_1h = get_btc_data(client, '1h')
+            btc_data_1d = get_btc_data(client, '1d')
 
             # Seleccionar símbolos aleatorios
-            symbols = select_random_symbols()
+            symbols = select_random_symbols(client)
 
             signal = None
             for symbol in symbols:
                 try:
-                    # Obtener los datos del símbolo
-                    symbol_data = get_symbol_data(symbol, client)
-
-                    # Verificar si symbol_data es un DataFrame y si está vacío
-                    if not isinstance(symbol_data, pd.DataFrame):
-                        logger.error(f"Los datos del símbolo {symbol} no son un DataFrame válido")
-                        continue
-
-                    if symbol_data.empty:
-                        logger.error(f"Datos vacíos para el símbolo {symbol}")
-                        continue
+                    symbol_data = get_symbol_data(client, symbol)
+                    if symbol_data is None:
+                        logger.error(f"No se pudo obtener datos para el símbolo {symbol}")
+                        continue  # Pasar al siguiente símbolo si falla
 
                     # Intentar analizar el símbolo actual
                     signal = analyze_trade(symbol, symbol_data, btc_data_1h, btc_data_1d)
 
-                    if signal:
+                    if signal:  # Si se encuentra una señal, salir del ciclo
                         logger.info(f"Señal encontrada para {symbol}: {signal}")
                         break
                 except Exception as e:
                     logger.error(f"Error al analizar el símbolo {symbol}: {e}")
-                    continue
+                    continue  # Continuar con el siguiente símbolo en caso de error
 
-            # Si se encuentra una señal, retornarla
+            # Si se encuentra una señal, retornarla al frontend
             if signal:
                 return JsonResponse({'signal': signal})
 
-            # Si no se encuentra ninguna señal
+            # Si no se encuentra ninguna señal después de analizar todos los símbolos
             return JsonResponse({'signal': 'No signal found.'})
 
         except Exception as e:
@@ -222,8 +195,6 @@ def get_signal(request):
             return JsonResponse({'signal': 'Error occurred during signal search'}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
-
-
 
 
 # Vista para actualizar claves API
@@ -240,7 +211,7 @@ def update_api_keys(request):
             APIs.set_api_key(request.user.id, api_key)
             APIs.set_api_secret(request.user.id, api_secret)
 
-            messages.success(request, 'Tus claves API han sido actualizadas.')
+            messages.success(request, 'Your API keys have been updated.')
             return redirect('dashboard')
     else:
         form = ApiKeyForm()
@@ -260,16 +231,17 @@ def username_recovery_view(request):
             user = User.objects.get(email=email)
             # Enviar correo con el nombre de usuario
             send_mail(
-                'Tu nombre de usuario',
-                f'Hola, tu nombre de usuario es {user.username}.',
+                'Your Username',
+                f'Hello, your username is {user.username}.',
                 'noreply@yourdomain.com',  # Configura esto correctamente según tu servidor de correos
                 [email],
                 fail_silently=False,
             )
-            messages.success(request, 'Se ha enviado un correo con tu nombre de usuario a tu dirección de email.')
-            return redirect('index')  # Redirige al inicio
+            messages.success(request, 'An email with your username has been sent to your email address.')
+            return redirect('index')  # Redirige al inicio en lugar de mostrar otra página
         except User.DoesNotExist:
-            messages.error(request, 'No se encontró ningún usuario con esa dirección de email.')
+            messages.error(request, 'No user found with that email address.')
             return render(request, 'web/username_recovery.html')
 
     return render(request, 'web/username_recovery.html')
+

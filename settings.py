@@ -131,3 +131,33 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    
+
+# -----------------------------
+# LOGGING CONFIGURATION
+# -----------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',  # Puedes cambiar a INFO para reducir la verbosidad
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Cambia a INFO si prefieres menos mensajes
+            'propagate': True,
+        },
+        'web': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Cambia según tus necesidades (INFO, ERROR, etc.)
+            'propagate': True,
+        },
+    },
+}

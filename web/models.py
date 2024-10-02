@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from cryptography.fernet import Fernet
 from django.conf import settings
+
+
 import uuid
 
 class UserProfile(models.Model):
@@ -53,3 +55,17 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+
+# Modelo para almacenar señales de trading
+class Signal(models.Model):
+    symbol = models.CharField(max_length=10)
+    entry1 = models.FloatField()
+    entry2 = models.FloatField()
+    stop_loss = models.FloatField()
+    take_profits = models.JSONField()  # Para almacenar múltiples TP
+    signal_type = models.CharField(max_length=10)
+    signal_strength = models.FloatField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.symbol} - {self.signal_type} - {self.created_at}"

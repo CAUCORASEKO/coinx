@@ -26,16 +26,16 @@
             <div class="widget portfolio-widget">
                 <h3>Portfolio Change</h3>
                 <p>${{ portfolio_change }} ({{ portfolio_change_percentage }}%)</p>
-                <!-- Gráfico de línea futura aquí -->
             </div>
 
             <div class="widget signal-widget">
                 <h3>Trading Signal</h3>
-                <!-- Estado del análisis de señal -->
-                <p id="signal-status">No signal found yet.</p> <!-- Estado inicial -->
+                <p id="signal-status">No signal found yet.</p> <!-- Aquí se mostrará el estado de búsqueda o señal encontrada -->
                 <div class="search-container">
-                    <button id="signal-button" class="button primary">Search</button>
+                    <button id="signal-button" class="button primary">Search</button> <!-- Botón para buscar señales -->
                 </div>
+                <!-- Contenedor para mostrar los detalles de la señal -->
+                <div id="signal-details" style="display: none;"></div> <!-- Oculto inicialmente -->
             </div>
         </div>
 
@@ -70,14 +70,6 @@
             </table>
         </div>
 
-        <!-- Paginación -->
-        <div class="pagination">
-            {% if is_paginated %}
-                <span class="page-link">{% if coins.has_previous %}<a href="?page={{ coins.previous_page_number }}">Previous</a>{% endif %}</span>
-                <span class="page-link">{% if coins.has_next %}<a href="?page={{ coins.next_page_number }}">Next</a>{% endif %}</span>
-            {% endif %}
-        </div>
-
         <!-- Botón de logout -->
         <form method="post" action="{% url 'logout' %}" class="logout-form">
             {% csrf_token %}
@@ -89,7 +81,7 @@
 
 </body>
 
-<!-- Script para manejar el gráfico de asignación de cuentas -->
+<!-- Script para el gráfico de asignación de cuentas -->
 <script>
     var ctx = document.getElementById('accountChart').getContext('2d');
     var accountChart = new Chart(ctx, {
@@ -112,29 +104,66 @@
     });
 </script>
 
-<!-- Script para manejar el estado del botón y la señal -->
+<!-- Script para manejar las señales de trading -->
 <script>
-document.getElementById("signal-button").addEventListener("click", function() {
-    // Cambiar el estado del mensaje a "Searching..."
-    document.getElementById("signal-status").innerHTML = "<p>Searching for signals...</p>";
-
-    // Enviar la solicitud POST al servidor para buscar la señal
-    fetch("{% url 'get_signal' %}", {
-        method: "POST",
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Si se recibe la señal, mostrarla
-        document.getElementById("signal-status").innerHTML = "<p>Signal found: " + data.signal + "</p>";
-    })
-    .catch(error => {
-        console.error('Error fetching the signal:', error);
-        document.getElementById("signal-status").innerHTML = "<p>Error finding signal.</p>";
+    document.getElementById("signal-button").addEventListener("click", function() {
+        var signalButton = document.getElementById("signal-button");
+        var signalStatus = document.getElementById("signal-status");
+        var signalDetails = document.getElementById("signal-details");
+    
+        // Deshabilitar el botón mientras busca
+        signalButton.disabled = true;
+        signalStatus.innerHTML = "<p>Keep searching...</p>";
+    
+        // Enviar la solicitud al backend
+        fetch("{% url 'get_signal' %}", {
+            method: "POST",
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            // Intenta parsear como JSON
+            return response.json().catch(() => {
+                throw new Error("Received response is not valid JSON");
+            });
+        })
+        .then(data => {
+            // Verificar si hubo algún error en la respuesta
+            if (data.error) {
+                signalStatus.innerHTML = `<p>Error: ${data.error}</p>`;
+                signalButton.disabled = false;
+            } else if (data.signal && data.signal.symbol) {
+                // Si hay una señal válida, mostrarla
+                var signalDetailsHTML = `
+                    <p><strong>Symbol:</strong> ${data.signal.symbol}</p>
+                    <p><strong>Entry Point 1:</strong> ${data.signal.entry1}</p>
+                    <p><strong>Entry Point 2:</strong> ${data.signal.entry2}</p>
+                    <p><strong>Stop Loss:</strong> ${data.signal.stop_loss}</p>
+                    <p><strong>Take Profits:</strong> ${data.signal.take_profits.join(', ')}</p>
+                    <p><strong>Signal Type:</strong> ${data.signal.signal_type}</p>
+                    <p><strong>Signal Strength:</strong> ${data.signal.signal_strength}%</p>
+                `;
+                signalStatus.innerHTML = "<p>Signal found:</p>";
+                signalDetails.innerHTML = signalDetailsHTML;
+                signalDetails.style.display = "block"; // Mostrar el contenedor de detalles de la señal
+                signalButton.disabled = false; // Reactivar el botón
+            } else {
+                // Si no hay señal válida, continuar buscando
+                signalStatus.innerHTML = "<p>Keep searching...</p>";
+                setTimeout(() => {
+                    signalButton.click(); // Reintentar la búsqueda
+                }, 5000);
+            }
+        })
+        .catch(error => {
+            signalStatus.innerHTML = "<p>Error occurred while searching for signals: " + error.message + "</p>";
+            signalButton.disabled = false;
+        });
     });
-});
 </script>
 
 </html>
