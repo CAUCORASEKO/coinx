@@ -1,5 +1,7 @@
 import logging
 import pandas as pd
+import json
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.conf import settings
@@ -12,8 +14,10 @@ from web.forms import RegistrationForm, ApiKeyForm  # Asegúrate de que forms.py
 from web.models import UserProfile
 from web.utils import APIs  # Importar la clase APIs desde utils.py
 from cryptography.fernet import Fernet  # Importar para el cifrado
-from trade_signal import get_btc_data, get_symbol_data, select_random_symbols, analyze_trade
+from web.management.commands.trade_signal import get_btc_data, get_symbol_data, select_random_symbols, analyze_trade
 from web.management.commands.global_client import get_global_client  # Importar get_global_client
+
+
 
 # Configuración del logger
 logger = logging.getLogger(__name__)
@@ -166,64 +170,32 @@ def dashboard_view(request):
 # --------------------------
 
 
-@login_required
+# Ruta al archivo donde se almacenan las señales generadas por trade_signal.py
+SIGNAL_FILE = os.path.join(os.path.dirname(__file__), 'signals.json')
 
+@login_required
 def get_signal(request):
     if request.method == 'POST':
         try:
-            # Obtener el cliente global de Binance
-            client = get_global_client()
+            # Verificar si el archivo de señales existe
+            if os.path.exists(SIGNAL_FILE):
+                with open(SIGNAL_FILE, 'r') as file:
+                    signal_data = json.load(file)
 
-            if client is None:
-                logger.error("No se pudo inicializar el cliente global de Binance.")
-                return JsonResponse({'signal': 'Error al inicializar el cliente'}, status=500)
+                if signal_data and signal_data.get('signal'):
+                    return JsonResponse({'signal': signal_data})
+                else:
+                    return JsonResponse({'message': 'No signals available yet.'}, status=200)
+            else:
+                return JsonResponse({'message': 'No signal file found.'}, status=200)
 
-            # Iniciar ciclo de búsqueda de señales
-            btc_data_1h = get_btc_data('1h')
-            btc_data_1d = get_btc_data('1d')
-
-            # Seleccionar símbolos aleatorios
-            symbols = select_random_symbols()
-
-            signal = None
-            for symbol in symbols:
-                try:
-                    # Obtener los datos del símbolo
-                    symbol_data = get_symbol_data(symbol, client)
-
-                    # Verificar si symbol_data es un DataFrame y si está vacío
-                    if not isinstance(symbol_data, pd.DataFrame):
-                        logger.error(f"Los datos del símbolo {symbol} no son un DataFrame válido")
-                        continue
-
-                    if symbol_data.empty:
-                        logger.error(f"Datos vacíos para el símbolo {symbol}")
-                        continue
-
-                    # Intentar analizar el símbolo actual
-                    signal = analyze_trade(symbol, symbol_data, btc_data_1h, btc_data_1d)
-
-                    if signal:
-                        logger.info(f"Señal encontrada para {symbol}: {signal}")
-                        break
-                except Exception as e:
-                    logger.error(f"Error al analizar el símbolo {symbol}: {e}")
-                    continue
-
-            # Si se encuentra una señal, retornarla
-            if signal:
-                return JsonResponse({'signal': signal})
-
-            # Si no se encuentra ninguna señal
-            return JsonResponse({'signal': 'No signal found.'})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Error decoding signal data.'}, status=500)
 
         except Exception as e:
-            logger.error(f"Error al obtener señal: {e}")
-            return JsonResponse({'signal': 'Error occurred during signal search'}, status=500)
+            return JsonResponse({'error': f'Unexpected error: {str(e)}'}, status=500)
 
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
-
-
+    return JsonResponse({'error': 'Invalid request method.'}, status=400)
 
 
 # Vista para actualizar claves API

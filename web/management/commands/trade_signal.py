@@ -1,5 +1,5 @@
-# trade_signal.py
 import sys
+import json
 import os
 import django
 import pandas as pd
@@ -11,25 +11,37 @@ import logging
 import threading
 import time
 from binance.exceptions import BinanceAPIException
+from django.core.management.base import BaseCommand  # Importar BaseCommand
+
+# Configuración del logger
+
+# Crear el logger
+logger = logging.getLogger(__name__)
+
+# Verifica si el logger ya tiene manejadores para evitar duplicación
+if not logger.hasHandlers():  # Solo agrega el manejador si no existen
+    # Configurar el manejador del logger
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+# Establecer el nivel de log
+logger.setLevel(logging.INFO)
 
 # Asegúrate de que la ruta de importación esté correcta para obtener el cliente
 from web.management.commands.global_client import get_global_client  # Importa el cliente global
 
 # Establecer la variable DJANGO_SETTINGS_MODULE
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings')
-# Ajusta con tu proyecto
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')  # Ajusta con tu proyecto
 
 # Inicializa Django
-django.setup()
-
-# Configuración del logger
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO,
-    handlers=[logging.StreamHandler()]
-)
-
-logger = logging.getLogger(__name__)
+try:
+    django.setup()
+except Exception as e:
+    logger.error(f"Error inicializando Django: {e}")
+    sys.exit(1)
 
 # Obtener el cliente de Binance
 client = get_global_client()
@@ -38,20 +50,23 @@ if client is None:
     logger.error("No se pudo inicializar el cliente global de Binance. Abortando.")
     sys.exit(1)
 
+# Aquí encapsulamos la lógica de Django Command:
+class Command(BaseCommand):
+    help = 'Inicia el análisis de trading avanzado'
+
+    def handle(self, *args, **options):
+        logger.info("Iniciando el análisis de trading desde el comando de Django...")
+        # Crear y empezar el hilo sin detener el proceso principal
+        thread = threading.Thread(target=perform_trade_analysis)
+        thread.start()
+
+
 
 # Configuración centralizada
 KLINE_INTERVAL = '1h'
 KLINE_LIMIT = 100
 ORDER_BOOK_LIMIT = 100
 
-# Configuración del logger
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO,
-    handlers=[logging.StreamHandler()]
-)
-
-logger = logging.getLogger(__name__)
 
 # Obtener el cliente de Binance desde global_client.py
 
@@ -119,20 +134,38 @@ def calculate_fibonacci_levels(high, low):
         '2.618': high + (high - low) * 2.618,
         '4.236': high + (high - low) * 4.236
     }
+    # Convertir a float nativo para evitar problemas de compatibilidad
+    levels = {k: float(v) for k, v in levels.items()}
     return levels
 
 
 
-def get_market_cap_from_coingecko(crypto_id):
+
+market_cap_cache = {}
+market_cap_last_fetch = {}
+
+def get_market_cap_from_coingecko(crypto_id, cache_duration=3600):
     """
-    Obtiene el Market Cap desde CoinGecko para una criptomoneda especificada.
+    Obtiene el Market Cap desde CoinGecko con caché para evitar múltiples consultas seguidas.
     """
+    current_time = time.time()
+
+    # Si el market cap fue consultado recientemente, usa el caché
+    if crypto_id in market_cap_cache and (current_time - market_cap_last_fetch[crypto_id] < cache_duration):
+        logger.info(f"Usando el valor en caché del Market Cap para {crypto_id}")
+        return market_cap_cache[crypto_id]
+    
+    # De lo contrario, realiza la solicitud a CoinGecko
     url = f"https://api.coingecko.com/api/v3/coins/{crypto_id}"
     try:
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
             market_cap = data['market_data']['market_cap']['usd']
+            
+            # Actualizar caché y hora de consulta
+            market_cap_cache[crypto_id] = market_cap
+            market_cap_last_fetch[crypto_id] = current_time
             return market_cap
         else:
             logger.error(f"Error al obtener Market Cap para {crypto_id} de CoinGecko. Status code: {response.status_code}")
@@ -140,6 +173,7 @@ def get_market_cap_from_coingecko(crypto_id):
     except Exception as e:
         logger.error(f"Error al obtener Market Cap de CoinGecko: {e}")
         return None
+
     
     
     
@@ -233,12 +267,15 @@ def get_order_book(symbol):
 
 
 def calculate_weighted_average_price(levels):
-    total_volume = sum(size for price, size in levels)
+    total_volume = sum(size for _, size in levels)
     if total_volume == 0:
         logger.error("El volumen total es 0, no se puede calcular el precio ponderado.")
         return None
-    weighted_avg_price = sum(price * size for price, size in levels) / total_volume
+    weighted_avg_price = sum(price * size for price, size in levels)
+    if total_volume > 0:
+        weighted_avg_price /= total_volume
     return weighted_avg_price
+
 
 
 def is_volume_significant(orders, min_volume=1000):  # Ajusta el volumen mínimo según tus necesidades
@@ -354,9 +391,13 @@ def calculate_time_cycles(data, anchor_point, cycle_length=26):
     time_cycles = []
     for i in range(1, 5):  # Proyecta los próximos 4 ciclos
         cycle = anchor_point + (cycle_length * i)
+        # Puedes agregar alguna operación usando 'data' aquí si es relevante
+        if data is not None and len(data) > 0:  # Por ejemplo, usando la longitud de los datos
+            cycle += len(data)  # Ajustar el ciclo basado en los datos, si es necesario.
         time_cycles.append(cycle)
     
     return time_cycles
+
 
 
 def detect_wave_patterns(data):
@@ -398,10 +439,12 @@ def monitor_unusual_volume(data, volume_threshold=1.5):
     long_term_avg_volume = data['volume'].rolling(window=50).mean().iloc[-1]
     last_volume = data['volume'].iloc[-1]
     
-    if last_volume > mid_term_avg_volume * volume_threshold and last_volume > short_term_avg_volume * 1.2:
+    if (last_volume > mid_term_avg_volume * volume_threshold and last_volume > short_term_avg_volume * 1.2
+        and last_volume > long_term_avg_volume * 1.1):  # Agregar el chequeo con long_term_avg_volume
         logger.info(f"Volumen inusual detectado: {last_volume}.")
         return True
     return False
+
 
 
 
@@ -428,20 +471,6 @@ def detect_stop_hunting(price, support, resistance, bids, asks, spread_threshold
     """
     Detecta patrones de caza de stop losses en base a movimientos rápidos en niveles clave y volatilidad reciente.
     Devuelve True si se detecta posible caza de stop losses.
-
-    Parámetros:
-    - price: Precio actual.
-    - support: Nivel de soporte identificado.
-    - resistance: Nivel de resistencia identificado.
-    - bids: Lista de órdenes de compra [(precio, volumen)].
-    - asks: Lista de órdenes de venta [(precio, volumen)].
-    - spread_threshold: Umbral del spread entre bids y asks.
-    - data: DataFrame con datos históricos del precio (puede incluir velas, ATR, etc.).
-    - interval: Intervalo de las velas (por defecto usa KLINE_INTERVAL).
-    - limit: Límite de cantidad de velas a analizar (por defecto usa KLINE_LIMIT).
-    
-    Devuelve:
-    - True si se detecta una posible caza de stop losses.
     """
     try:
         # Calcular el spread entre las órdenes de compra y venta
@@ -449,13 +478,14 @@ def detect_stop_hunting(price, support, resistance, bids, asks, spread_threshold
         
         # Calcular ATR a partir de los datos históricos si están disponibles
         if data is not None:
-            # Si el DataFrame tiene menos de limit velas, ajusta dinámicamente
+            # Ajustar el cálculo de ATR en función del intervalo
+            atr_factor = 1 if interval == '1h' else 2  # Ejemplo de ajuste basado en intervalos
             actual_limit = min(len(data), limit)
             atr = ta.volatility.average_true_range(
                 data['high'].iloc[-actual_limit:], 
                 data['low'].iloc[-actual_limit:], 
                 data['close'].iloc[-actual_limit:]
-            ).iloc[-1]
+            ).iloc[-1] * atr_factor
         else:
             # Si no hay datos históricos, estimar ATR en base a soporte y resistencia
             atr = (resistance - support) / 10
@@ -616,6 +646,14 @@ def calculate_combined_force(bids, asks, data):
 def calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d):
     logger.info(f"Calculando entry, stop loss y take profit para {symbol}")
 
+    if data.empty:
+        logger.error(f"Error: Data vacío para {symbol}")
+        return None, None
+
+    if 'ema_50' not in data.columns or 'ema_200' not in data.columns:
+        logger.error(f"Error: Faltan columnas EMA en {symbol}")
+        return None, None
+
     # Obtener el libro de órdenes
     bids, asks = get_order_book(symbol)
     if not bids or not asks:
@@ -624,7 +662,6 @@ def calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d):
 
     # Identificar soporte y resistencia
     support, resistance = identify_key_levels(bids, asks)
-    
     if support is None or resistance is None:
         logger.error(f"Error: Soporte o resistencia nulos para {symbol}")
         return None, None
@@ -633,20 +670,17 @@ def calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d):
 
     # Obtener los precios ponderados
     weighted_buy_price, weighted_sell_price = get_weighted_prices_from_order_book(symbol)
-
-    # Verificar si los precios ponderados son None
     if weighted_buy_price is None or weighted_sell_price is None:
         logger.error(f"No se pudieron obtener precios ponderados para {symbol}, omitiendo análisis.")
         return None, None
 
     # Calcular indicadores técnicos
     data = calculate_technical_indicators(data)
-    if data is None or 'ema_50' not in data.columns or 'ema_200' not in data.columns:
-        logger.error(f"Error: No se pudieron calcular las EMAs para {symbol}")
+    if data is None:
+        logger.error(f"Error: No se pudieron calcular los indicadores técnicos para {symbol}")
         return None, None
 
-
-    # Calcular la fuerza combinada usando la nueva función
+    # Calcular la fuerza combinada
     force_bulls, force_bears = calculate_combined_force(bids, asks, data)
     logger.info(f"Fuerza combinada de toros: {force_bulls:.2f}, Fuerza combinada de osos: {force_bears:.2f}")
 
@@ -659,6 +693,7 @@ def calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d):
     trend = "up" if data['ema_50'].iloc[-1] > data['ema_200'].iloc[-1] else "down"
     logger.info(f"Tendencia para {symbol}: {trend}")
 
+    
     # Inicializar variables para evitar errores de no asignación
     entry_long = entry_short = None
     entry_long_2 = entry_short_2 = None
@@ -709,10 +744,17 @@ def calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d):
 
 
 
-
-
 def calculate_technical_indicators(data):
     try:
+        if data.empty:
+            logger.error(f"Error: DataFrame vacío al calcular indicadores técnicos")
+            return None
+        
+        if 'high' not in data.columns or 'low' not in data.columns or 'close' not in data.columns:
+            logger.error("Error: Faltan columnas importantes en el DataFrame para calcular indicadores técnicos.")
+            return None
+
+        # Cálculo de indicadores técnicos
         data['vwap'] = calculate_vwap(data)
         data['atr'] = ta.volatility.average_true_range(data['high'], data['low'], data['close'])
         data['ema_50'] = ta.trend.ema_indicator(data['close'], window=50)
@@ -720,11 +762,26 @@ def calculate_technical_indicators(data):
         data['rsi'] = ta.momentum.rsi(data['close'])
         data['mfi'] = ta.volume.money_flow_index(data['high'], data['low'], data['close'], data['volume'])
         data['macd'] = ta.trend.macd_diff(data['close'])
-        calculate_ichimoku(data)
+
+        # Calcular niveles de Fibonacci
+        high = data['high'].max()
+        low = data['low'].min()
+        fibonacci_levels = calculate_fibonacci_levels(high, low)
+        
+        # Añadir los niveles de Fibonacci al DataFrame
+        for level, value in fibonacci_levels.items():
+            data[f'fibonacci_{level}'] = value
+
+        # Calcular Ichimoku
+        data = calculate_ichimoku(data)
+    
     except Exception as e:
         logger.error(f"Error al calcular los indicadores técnicos: {e}")
         return None
+    
     return data
+
+
 
 
 def evaluate_entry_quality(trend, price, vwap, atr, rsi, macd, ema_50, tenkan_sen, kijun_sen, senkou_span_a, senkou_span_b, volume_profile):
@@ -776,50 +833,34 @@ def evaluate_entry_quality(trend, price, vwap, atr, rsi, macd, ema_50, tenkan_se
 
 
 def calculate_volume_profile_with_nodes(data, num_bins=20, volume_threshold=0.05):
-    """
-    Calcula el perfil de volumen y detecta nodos de alto y bajo volumen (HVN/LVN).
+    # Filtrar solo las columnas numéricas
+    numeric_data = data.select_dtypes(include=[np.number])
 
-    :param data: DataFrame con las columnas 'close' (precio de cierre), 'volume' (volumen) y 'atr' (volatilidad).
-    :param num_bins: Número de bins para dividir los precios.
-    :param volume_threshold: Umbral para definir HVN/LVN como porcentaje del volumen total.
-    :return: DataFrame con el rango de precios, volumen, HVN y LVN.
-    """
-    # Verificar que los datos tengan las columnas necesarias
-    if 'close' not in data.columns or 'volume' not in data.columns or 'atr' not in data.columns:
-        raise ValueError("El DataFrame de entrada debe contener las columnas 'close', 'volume' y 'atr'.")
+    if 'close' not in numeric_data.columns or 'volume' not in numeric_data.columns or 'atr' not in numeric_data.columns:
+        raise ValueError("El DataFrame debe contener las columnas 'close', 'volume' y 'atr' como valores numéricos.")
 
-    # Definir los límites de los bins de precios
-    price_min = data['close'].min()
-    price_max = data['close'].max()
+    # Continuar con el cálculo
+    price_min = numeric_data['close'].min()
+    price_max = numeric_data['close'].max()
     bins = np.linspace(price_min, price_max, num_bins)
-    
-    # Agrupar los precios en bins y sumar el volumen por cada rango de precios
-    data['price_bin'] = pd.cut(data['close'], bins=bins, include_lowest=True)
-    volume_profile = data.groupby('price_bin', observed=False)['volume'].sum().reset_index()
 
-    # Calcular el volumen total
+    # Agrupar los precios en bins y sumar el volumen por cada rango de precios
+    numeric_data['price_bin'] = pd.cut(numeric_data['close'], bins=bins, include_lowest=True)
+    volume_profile = numeric_data.groupby('price_bin', observed=False)['volume'].sum().reset_index()
+
+    # Calcular el porcentaje de volumen para cada bin
     total_volume = volume_profile['volume'].sum()
 
-    # Ajustar dinámicamente el umbral de volumen en función de la volatilidad (ATR)
-    volume_threshold_adjusted = volume_threshold * (1 + data['atr'].iloc[-1] / data['close'].mean())
-
-    # Asegurarse de que el volumen total no sea 0 para evitar divisiones por 0
     if total_volume == 0:
         raise ValueError("El volumen total es cero, no se puede calcular el perfil de volumen.")
 
-    # Calcular el porcentaje de volumen para cada bin
     volume_profile['volume_percent'] = volume_profile['volume'] / total_volume
 
-    # Detectar nodos de alto volumen (HVN) y nodos de bajo volumen (LVN)
-    volume_profile['HVN'] = volume_profile['volume_percent'] > volume_threshold_adjusted
-    volume_profile['LVN'] = volume_profile['volume_percent'] < (volume_threshold_adjusted / 2)
-
-    # Limpiar la columna auxiliar 'price_bin' si ya no es necesaria
-    data.drop(columns=['price_bin'], inplace=True, errors='ignore')
+    # Detectar HVN y LVN
+    volume_profile['HVN'] = volume_profile['volume_percent'] > volume_threshold
+    volume_profile['LVN'] = volume_profile['volume_percent'] < (volume_threshold / 2)
 
     return volume_profile
-
-
 
 
 
@@ -966,18 +1007,89 @@ def calculate_take_profits(entry_price, atr, rsi, trend):
 
 
 
+def check_fibonacci_level(entry_price, data):
+    """
+    Verifica si el precio de entrada está cerca de un nivel de Fibonacci.
+    """
+    fibonacci_levels = [
+        data['fibonacci_0.236'],
+        data['fibonacci_0.382'],
+        data['fibonacci_0.5'],
+        data['fibonacci_0.618'],
+        data['fibonacci_0.786'],
+        data['fibonacci_1.0']
+    ]
+    
+    # Definir un margen de tolerancia para considerar si el precio está cerca del nivel de Fibonacci
+    tolerance = 0.01 * data['close'].mean()
+
+    # Verificar si el precio de entrada está cerca de algún nivel de Fibonacci
+    for level in fibonacci_levels:
+        if abs(entry_price - level) <= tolerance:
+            return True
+
+    return False
+
+
+def check_ichimoku_support(entry_price, data):
+    """
+    Verifica si el precio de entrada está cerca del soporte o resistencia del Ichimoku.
+    """
+    senkou_span_a = data['senkou_span_a'].iloc[-1]
+    senkou_span_b = data['senkou_span_b'].iloc[-1]
+
+    # Definir un margen de tolerancia para considerar si el precio está cerca del soporte o resistencia
+    tolerance = 0.01 * data['close'].mean()
+
+    # Verificar si el precio de entrada está cerca de Senkou Span A o B
+    if abs(entry_price - senkou_span_a) <= tolerance or abs(entry_price - senkou_span_b) <= tolerance:
+        return True
+
+    return False
+
+
+
+
+
 def calculate_signal_strength(data, trend, entry_price):
     rsi = data['rsi'].iloc[-1]
     macd = data['macd'].iloc[-1]
+    signal_macd = data['macd_signal'].iloc[-1]  # Línea de señal del MACD
+    close_price = data['close'].iloc[-1]
 
+    # Normalización de RSI y MACD
     rsi_norm = (rsi - 20) / 60
     macd_range = data['macd'].max() - data['macd'].min()
     macd_norm = (macd - data['macd'].min()) / macd_range if macd_range > 0 else 0.5
 
+    # Ajuste basado en la diferencia del precio de entrada con el cierre actual
+    price_diff = abs(close_price - entry_price)
+    price_adjustment = max(0, 1 - (price_diff / close_price))  # Ajuste si el precio de entrada está lejos
+
+    # Nuevo ajuste basado en Fibonacci y Ichimoku
+    fibonacci_level = check_fibonacci_level(entry_price, data)  # Función que verifica si está en un nivel clave de Fibonacci
+    ichimoku_support = check_ichimoku_support(entry_price, data)  # Función que verifica soporte/resistencia de Ichimoku
+
+    if fibonacci_level or ichimoku_support:
+        price_adjustment *= 1.2  # Aumentar la fuerza si hay soporte adicional de Fibonacci o Ichimoku
+
+    # Ajuste adicional basado en RSI extremo
+    if trend == "up" and rsi < 30 and entry_price < close_price:
+        price_adjustment *= 1.2  # Aumentar si el RSI indica sobreventa y el punto de entrada está más abajo
+    elif trend == "down" and rsi > 70 and entry_price > close_price:
+        price_adjustment *= 1.2  # Aumentar si el RSI indica sobrecompra y el punto de entrada está más arriba
+
+    # Ajuste basado en el MACD:
+    if trend == "up" and macd > signal_macd and macd > 0:
+        price_adjustment *= 1.2  # Aumentar si el MACD está en un cruce alcista
+    elif trend == "down" and macd < signal_macd and macd < 0:
+        price_adjustment *= 1.2  # Aumentar si el MACD está en un cruce bajista
+
+    # Cálculo final de la fuerza de la señal
     if trend == "up":
-        strength = (rsi_norm + macd_norm) / 2
+        strength = (rsi_norm + macd_norm) / 2 * price_adjustment
     else:
-        strength = ((1 - rsi_norm) + (1 - macd_norm)) / 2
+        strength = ((1 - rsi_norm) + (1 - macd_norm)) / 2 * price_adjustment
 
     return strength * 100
 
@@ -1042,11 +1154,14 @@ def calculate_volume_profile(data):
     return volume_profile
 
 def filter_signal(result, symbol):
+    if result is None:
+        return None
+
     entry1, entry2, stop_loss, tp1, tp2, tp3, tp4, signal_type, signal_strength = result
 
     unique_values = {entry1, entry2, stop_loss, tp1, tp2, tp3, tp4}
-    if len(unique_values) != 7:
-        logger.info(f"Señal para {symbol} ({signal_type}) filtrada por valores repetidos.")
+    if None in unique_values or len(unique_values) != 7:
+        logger.info(f"Señal para {symbol} ({signal_type}) filtrada por valores repetidos o nulos.")
         return None
 
     if signal_strength < 70:
@@ -1063,70 +1178,68 @@ def filter_signal(result, symbol):
 
     return result
 
-def send_signal(symbol, entry1, entry2, stop_loss, tp1, tp2, tp3, tp4, signal_type, signal_strength, ema_cross=None, sentiment=None):
-    """
-    Envía una señal de trading con la información sobre los puntos de entrada, stop loss, take profits,
-    cruces de EMAs y sentimiento de mercado.
-    """
+
+
+
+
+SIGNAL_FILE = os.path.join(os.path.dirname(__file__), 'signals.json')
+
+def send_signal(symbol, result, sentiment):
     try:
-        # Verificar si hay valores nulos
-        unique_values = {entry1, entry2, stop_loss, tp1, tp2, tp3, tp4}
-        if None in unique_values or len(unique_values) != 7:
-            logger.error(f"Error en señal: No deben haber valores nulos en Entry Points, Stop Loss y Take Profits.")
+        entry1, entry2, stop_loss, tp1, tp2, tp3, tp4, signal_type, signal_strength = result
+
+        if None in [entry1, entry2, stop_loss, tp1, tp2, tp3, tp4]:
+            logger.error(f"Valores nulos en la señal para {symbol}.")
             return
 
-        # Ordenar entry points de acuerdo al tipo de señal
-        if signal_type == "Long":
-            entry1, entry2 = sorted([entry1, entry2], reverse=True)
-        else:
-            entry1, entry2 = sorted([entry1, entry2])
-
-        # Cálculo de porcentajes para los take profits y stop loss
-        tp1_percent = (tp1 - entry1) / entry1 * 100 * (1 if signal_type == "Long" else -1)
-        tp2_percent = (tp2 - entry1) / entry1 * 100 * (1 if signal_type == "Long" else -1)
-        tp3_percent = (tp3 - entry1) / entry1 * 100 * (1 if signal_type == "Long" else -1)
-        tp4_percent = (tp4 - entry1) / entry1 * 100 * (1 if signal_type == "Long" else -1)
-        sl_percent = (stop_loss - entry1) / entry1 * 100 * (1 if signal_type == "Long" else -1)
-
-        # Mensajes adicionales para sentimiento y cruce de EMAs
-        sentiment_message = ""
-        if sentiment:
-            if (signal_type == "Long" and sentiment == "Bearish") or (signal_type == "Short" and sentiment == "Bullish"):
-                sentiment_message = "⚠️ Sentiment: Risky"
-
-        ema_cross_message = f"🔀 EMAs Crossing: {ema_cross}" if ema_cross else ""
-
-        # Crear el mensaje a enviar
         message = (
             f"🚀 {symbol} - #{signal_type} - FUTURES\n"
-            "--------------------------------------\n"
-            f"📍 Entry Point 1   : {entry1:.4f}\n"
-            f"📍 Entry Point 2   : {entry2:.4f}\n"
-            f"🛑 Stop Loss     : {stop_loss:.4f} ({sl_percent:.2f}%)\n\n"
-            f"🎯 Take Profit 1 : {tp1:.4f} ({tp1_percent:.2f}%)\n"
-            f"🎯 Take Profit 2 : {tp2:.4f} ({tp2_percent:.2f}%)\n"
-            f"🎯 Take Profit 3 : {tp3:.4f} ({tp3_percent:.2f}%)\n"
-            f"🎯 Take Profit 4 : {tp4:.4f} ({tp4_percent:.2f}%)\n\n"
+            f"📍 Entry Point 1: {entry1:.4f}\n"
+            f"📍 Entry Point 2: {entry2:.4f}\n"
+            f"🛑 Stop Loss: {stop_loss:.4f}\n"
+            f"🎯 Take Profit 1: {tp1:.4f}\n"
+            f"🎯 Take Profit 2: {tp2:.4f}\n"
+            f"🎯 Take Profit 3: {tp3:.4f}\n"
+            f"🎯 Take Profit 4: {tp4:.4f}\n"
             f"💪 Signal Strength: {signal_strength:.2f}%\n"
-            f"📊 Signal Quality: {'🔥 Good' if signal_strength > 75 else '✅ Normal'}\n"
-            f"{sentiment_message}\n"
-            f"{ema_cross_message}\n"
+            f"📊 Market Sentiment: {sentiment}\n"
         )
 
-        # Envío de mensaje al dashboard a través de una API, archivo o servicio
-        # Aquí debes implementar el código para enviar la señal, dependiendo de cómo esté configurada tu aplicación.
-        # Por ejemplo, podrías enviar la señal a un servicio de notificaciones o a un dashboard:
-
-        # Ejemplo de envío (debes adaptar esto a tu lógica real de envío):
-        response = send_to_dashboard(message)  # Implementar esta función según tu lógica de envío
-
+        # Simulación del envío al dashboard
+        response = send_to_dashboard(message)
         if response.status_code == 200:
-            logger.info(f"Señal para {symbol} enviada correctamente a dashboard")
+            logger.info(f"Señal para {symbol} enviada correctamente al dashboard")
         else:
-            logger.error(f"Error al enviar señal de {symbol} a dashboard: {response.text}")
+            logger.error(f"Error al enviar la señal de {symbol} al dashboard: {response.text}")
 
     except Exception as e:
-        logger.error(f"Error al enviar señal de {symbol} a dashboard: {str(e)}")
+        logger.error(f"Error al enviar la señal: {e}")
+
+def send_to_dashboard(message):
+    class Response:
+        def __init__(self, status_code, text="Success"):
+            self.status_code = status_code
+            self.text = text
+
+    # Simulación de envío
+    return Response(200)
+
+
+
+def send_to_dashboard(message):
+    """
+    Simula el envío de una señal al dashboard o sistema de notificaciones.
+    Aquí puedes implementar la lógica real para enviar la señal.
+    """
+    # Simulación de respuesta correcta
+    class Response:
+        def __init__(self, status_code, text="Success"):
+            self.status_code = status_code
+            self.text = text
+
+    # Supón que el envío fue exitoso
+    return Response(200)
+
 
 
 def send_to_dashboard(message):
@@ -1180,59 +1293,90 @@ def analyze_with_ichimoku_theories(data, symbol):
         'time_cycles': time_cycles,
         'wave_patterns': wave_patterns
     }
+    
+
+def analyze_ichimoku(data):
+    """
+    Esta función analiza la señal Ichimoku.
+    Calcula las líneas del Ichimoku y retorna una señal de 'Buy', 'Sell' o 'Neutral'.
+    """
+    try:
+        # Calcular Ichimoku
+        ichimoku = ta.trend.IchimokuIndicator(high=data['high'], low=data['low'], window1=9, window2=26, window3=52)
+        data['tenkan_sen'] = ichimoku.ichimoku_conversion_line()
+        data['kijun_sen'] = ichimoku.ichimoku_base_line()
+        data['senkou_span_a'] = ichimoku.ichimoku_a()
+        data['senkou_span_b'] = ichimoku.ichimoku_b()
+        data['chikou_span'] = data['close'].shift(-26)  # Línea Chikou Span
+
+        # Detectar cruces de Tenkan-sen y Kijun-sen
+        if data['tenkan_sen'].iloc[-1] > data['kijun_sen'].iloc[-1] and data['close'].iloc[-1] > data['senkou_span_a'].iloc[-1]:
+            return 'Buy'  # Señal de compra
+        elif data['tenkan_sen'].iloc[-1] < data['kijun_sen'].iloc[-1] and data['close'].iloc[-1] < data['senkou_span_b'].iloc[-1]:
+            return 'Sell'  # Señal de venta
+        else:
+            return 'Neutral'  # Sin señal clara
+
+    except Exception as e:
+        logger.error(f"Error en el análisis Ichimoku: {e}")
+        return 'Neutral'
+
 
 
 
 def analyze_trade(symbol, data, btc_data_1h, btc_data_1d):
+    if data is None or data.empty:  # Validación clara del DataFrame
+        logger.error(f"Error: No se encontraron datos para {symbol}")
+        return False
+
+    # Verificar si hay valores nulos
+    if data.isnull().values.any():
+        logger.error(f"Error: Existen valores nulos en los datos de {symbol}")
+        return False
+
+    # Calcular EMAs
     data = calculate_emas(data)
+    if data is None or data.empty:
+        logger.error(f"Error: No se pudieron calcular las EMAs para {symbol}")
+        return False
+
+    # Detectar cruce de EMAs
     ema_cross = detect_ema_cross(data)
 
     # Análisis Ichimoku
     ichimoku_analysis = analyze_with_ichimoku_theories(data, symbol)
-
-    # Acceder a los resultados de Ichimoku
-    ichimoku_signal = ichimoku_analysis.get('signal')
-    price_targets = ichimoku_analysis.get('price_targets')
-    time_cycles = ichimoku_analysis.get('time_cycles')
-    wave_patterns = ichimoku_analysis.get('wave_patterns')
-
-    # Registrar información de Ichimoku
-    if ichimoku_signal:
-        logger.info(f"Señal Ichimoku detectada: {ichimoku_signal}")
-    if price_targets:
-        logger.info(f"Objetivos de precio calculados: V={price_targets['V']}, E={price_targets['E']}, NT={price_targets['NT']}")
-    if time_cycles:
-        logger.info(f"Ciclos de tiempo detectados: {time_cycles}")
-    if wave_patterns:
-        logger.info(f"Patrones de ondas detectados: {wave_patterns}")
-
-    # Procesar señales de EMAs
-    if ema_cross:
-        if ema_cross == "Bullish Cross":
-            logger.info(f"Cruce de EMAs detectado: {ema_cross}. Preparando señal LONG para {symbol}.")
-            result_long, result_short = calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d)
-            selected_result = result_long
-        elif ema_cross == "Bearish Cross":
-            logger.info(f"Cruce de EMAs detectado: {ema_cross}. Preparando señal SHORT para {symbol}.")
-            result_long, result_short = calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d)
-            selected_result = result_short
-    else:
-        result_long, result_short = calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d)
-        selected_result = None
-        if result_long and result_short:
-            selected_result = result_long if result_long[8] > result_short[8] else result_short
-        elif result_long:
-            selected_result = result_long
-        elif result_short:
-            selected_result = result_short
-
-    if not selected_result:
+    if ichimoku_analysis is None:
+        logger.error(f"Error en el análisis Ichimoku para {symbol}")
         return False
 
-    # Filtrar la señal si es necesario
-    selected_result = filter_signal(selected_result, symbol)
+    # Obtener resultados del análisis Ichimoku
+    ichimoku_signal = ichimoku_analysis.get('signal')
+    price_targets = ichimoku_analysis.get('price_targets')
 
+    logger.info(f"Ichimoku Signal: {ichimoku_signal}")
+    logger.info(f"Price Targets: {price_targets}")
+
+    # Perfil de Volumen (asegúrate de validar)
+    volume_profile = calculate_volume_profile_with_nodes(data)
+    if volume_profile is None or volume_profile.empty:
+        logger.error(f"Error: El perfil de volumen está vacío para {symbol}")
+        return False
+
+    hvn_price = None
+    lvn_price = None
+
+    if volume_profile['HVN'].any():
+        hvn_price = volume_profile.loc[volume_profile['HVN'], 'price_bin'].apply(lambda x: x.mid).mean()
+
+    if volume_profile['LVN'].any():
+        lvn_price = volume_profile.loc[volume_profile['LVN'], 'price_bin'].apply(lambda x: x.mid).mean()
+
+    logger.info(f"Perfil de Volumen calculado para {symbol}")
+
+    # Filtrar señal si es necesario
+    selected_result = filter_signal(ichimoku_signal, symbol)
     if not selected_result:
+        logger.info(f"No se encontró una señal válida para {symbol}")
         return False
 
     # Obtener el sentimiento del mercado
@@ -1240,11 +1384,8 @@ def analyze_trade(symbol, data, btc_data_1h, btc_data_1d):
     if sentiment:
         logger.info(f"Sentimiento del mercado: {sentiment}, Puntuación: {sentiment_score}")
 
-    entry1, entry2, stop_loss, tp1, tp2, tp3, tp4, signal_type, signal_strength = selected_result
-
-    # Enviar señal
-    send_signal(symbol, entry1, entry2, stop_loss, tp1, tp2, tp3, tp4, signal_type, signal_strength, ema_cross, sentiment=sentiment)
-
+    # Enviar señal al dashboard
+    send_signal(symbol, selected_result, sentiment)
     return True
 
 
@@ -1263,16 +1404,28 @@ def get_btc_data(interval, client):
         btc_data[col] = btc_data[col].astype(float)
     return calculate_btc_indicators(btc_data)
 
+
 def get_symbol_data(symbol, client):
     logger.info(f"Obteniendo datos para {symbol}")
-    candles = client.futures_klines(symbol=symbol, interval=KLINE_INTERVAL, limit=KLINE_LIMIT)
-    data = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time',
-                                          'quote_asset_volume', 'number_of_trades',
-                                          'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume',
-                                          'ignore'])
-    for col in ['close', 'high', 'low', 'volume']:
-        data[col] = data[col].astype(float)
-    return data
+    try:
+        candles = client.futures_klines(symbol=symbol, interval=KLINE_INTERVAL, limit=KLINE_LIMIT)
+        if not candles:
+            logger.error(f"Error: No se obtuvieron datos para {symbol}")
+            return pd.DataFrame()  # Devuelve un DataFrame vacío si no hay datos
+    
+        data = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time',
+                                              'quote_asset_volume', 'number_of_trades',
+                                              'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume',
+                                              'ignore'])
+        # Convertir las columnas a float
+        for col in ['close', 'high', 'low', 'volume']:
+            data[col] = data[col].astype(float)
+        return data
+    except Exception as e:
+        logger.error(f"Error obteniendo datos para {symbol}: {e}")
+        return pd.DataFrame()  # En caso de error, devuelve un DataFrame vacío
+
+
 
 
 
@@ -1291,12 +1444,12 @@ def perform_trade_analysis():
     while True:
         try:
             # Analizar BTC y añadir el Market Cap
-            btc_data_1h = get_btc_data(KLINE_INTERVAL)
-            btc_data_1d = get_btc_data('1d')
+            btc_data_1h = get_btc_data(KLINE_INTERVAL, client)
+            btc_data_1d = get_btc_data('1d', client)
             btc_data_1h = analyze_btc_market_cap(btc_data_1h)
 
             # Selección aleatoria de símbolos para futuros
-            symbols = select_random_symbols()
+            symbols = select_random_symbols(client)
 
             for symbol in symbols:
                 if symbol in symbol_memory:
@@ -1304,7 +1457,7 @@ def perform_trade_analysis():
                 symbol_memory.add(symbol)
                 
                 try:
-                    data = get_symbol_data(symbol)
+                    data = get_symbol_data(symbol, client)
                     if data is None:
                         logger.error(f"Error: Datos nulos obtenidos para {symbol}, omitiendo análisis.")
                         continue
@@ -1327,6 +1480,65 @@ def perform_trade_analysis():
         except Exception as e:
             logger.error(f"Error en el ciclo principal: {str(e)}")
             time.sleep(60)
+
+
+
+# -----------------------------------
+# Almacenamos las senales 
+# -----------------------------------
+
+
+SIGNAL_FILE = os.path.join(os.path.dirname(__file__), 'signals.json')
+
+def store_signal(signal_data):
+    """
+    Almacena la señal en un archivo JSON.
+    Si no hay señal, asegura que el archivo siempre exista.
+    """
+    try:
+        # Si no hay señal, guarda un estado por defecto
+        if not signal_data:
+            signal_data = {'signal': None, 'message': 'No signal available yet'}
+
+        with open(SIGNAL_FILE, 'w') as f:
+            json.dump(signal_data, f)
+        logger.info("Señal almacenada correctamente.")
+    except Exception as e:
+        logger.error(f"Error al almacenar la señal: {e}")
+
+def load_signal():
+    """
+    Carga la señal almacenada desde el archivo JSON.
+    """
+    if not os.path.exists(SIGNAL_FILE):
+        # Si el archivo no existe, devolver una señal por defecto
+        return {'signal': None, 'message': 'No signal file found'}
+    
+    try:
+        with open(SIGNAL_FILE, 'r') as f:
+            signal_data = json.load(f)
+        return signal_data
+    except Exception as e:
+        logger.error(f"Error al cargar la señal: {e}")
+        return {'signal': None, 'message': 'Error loading signal file'}
+
+
+def send_signal(symbol, entry1, entry2, stop_loss, tp1, tp2, tp3, tp4, signal_type, signal_strength, ema_cross=None, sentiment=None):
+    """
+    En lugar de enviar la señal directamente, almacenaremos los resultados.
+    """
+    signal_data = {
+        'symbol': symbol,
+        'entry1': entry1,
+        'entry2': entry2,
+        'stop_loss': stop_loss,
+        'take_profits': [tp1, tp2, tp3, tp4],
+        'signal_type': signal_type,
+        'signal_strength': signal_strength,
+        'ema_cross': ema_cross,
+        'sentiment': sentiment
+    }
+    store_signal(signal_data)  # Guardar la señal
 
 
 

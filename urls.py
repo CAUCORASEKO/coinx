@@ -30,10 +30,10 @@ urlpatterns = [
 
     # Dashboard
     path('dashboard/', views.dashboard_view, name='dashboard'),
-    path('get_signal/', views.dashboard_view, name='get_signal'),
+    path('get_signal/', views.get_signal, name='get_signal'),  # Cambia dashboard_view por get_signal
 
     # Update API keys
-    path('update-api-keys/', views.update_api_keys, name='update_api_keys'),  # Add this line for the API keys update view
+    path('update-api-keys/', views.update_api_keys, name='update_api_keys'),
 
     # Password reset URLs
     path('password-reset/', auth_views.PasswordResetView.as_view(template_name='web/password_reset.html'), name='password_reset'),

@@ -10,7 +10,7 @@ from web.forms import RegistrationForm, ApiKeyForm  # Asegúrate de que forms.py
 from web.models import UserProfile
 from .utils import APIs  # Importar la clase APIs desde utils.py
 from cryptography.fernet import Fernet  # Importar para el cifrado
-from trade_signal import analyze_trade, perform_trade_analysis, get_btc_data, get_symbol_data, select_random_symbols
+from trade_signal2 import analyze_trade, perform_trade_analysis, get_btc_data, get_symbol_data, select_random_symbols
 from web.management.commands.global_client import get_global_client  # Importar get_global_client
 import logging
 
@@ -150,13 +150,15 @@ def dashboard_view(request):
 # Vista para obtener señales de trading
 # --------------------------
 
-
 @login_required
 def get_signal(request):
     if request.method == 'POST':
         try:
             # Obtener el cliente de Binance usando el cliente global
             client = get_global_client()
+
+            if not client:
+                return JsonResponse({'error': 'Failed to initialize Binance client'}, status=500)
 
             # Iniciar ciclo de búsqueda de señales
             btc_data_1h = get_btc_data(client, '1h')
@@ -165,11 +167,11 @@ def get_signal(request):
             # Seleccionar símbolos aleatorios
             symbols = select_random_symbols(client)
 
-            signal = None
+            signal_found = False  # Bandera para indicar si se encontró alguna señal
             for symbol in symbols:
                 try:
                     symbol_data = get_symbol_data(client, symbol)
-                    if symbol_data is None:
+                    if symbol_data is None or symbol_data.empty:
                         logger.error(f"No se pudo obtener datos para el símbolo {symbol}")
                         continue  # Pasar al siguiente símbolo si falla
 
@@ -178,23 +180,25 @@ def get_signal(request):
 
                     if signal:  # Si se encuentra una señal, salir del ciclo
                         logger.info(f"Señal encontrada para {symbol}: {signal}")
+                        signal_found = True
                         break
                 except Exception as e:
                     logger.error(f"Error al analizar el símbolo {symbol}: {e}")
                     continue  # Continuar con el siguiente símbolo en caso de error
 
             # Si se encuentra una señal, retornarla al frontend
-            if signal:
+            if signal_found:
                 return JsonResponse({'signal': signal})
 
             # Si no se encuentra ninguna señal después de analizar todos los símbolos
-            return JsonResponse({'signal': 'No signal found.'})
+            return JsonResponse({'signal': None, 'message': 'No signal found.'})
 
         except Exception as e:
             logger.error(f"Error al obtener señal: {e}")
-            return JsonResponse({'signal': 'Error occurred during signal search'}, status=500)
+            return JsonResponse({'error': f'Error occurred during signal search: {str(e)}'}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
 
 
 # Vista para actualizar claves API
