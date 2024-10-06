@@ -1,23 +1,16 @@
 import logging
-import pandas as pd
-import json
 import os
+from binance.client import Client as FuturesClient  # Cliente de Futuros
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
 from django.conf import settings
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.contrib import messages
-from web.forms import RegistrationForm, ApiKeyForm  # Asegúrate de que forms.py está bien ubicado
+from web.forms import RegistrationForm, ApiKeyForm
 from web.models import UserProfile
-from web.utils import APIs  # Importar la clase APIs desde utils.py
-from cryptography.fernet import Fernet  # Importar para el cifrado
-from web.management.commands.trade_signal import get_btc_data, get_symbol_data, select_random_symbols, analyze_trade
-from web.management.commands.global_client import get_global_client  # Importar get_global_client
-
-
+from cryptography.fernet import Fernet
 
 # Configuración del logger
 logger = logging.getLogger(__name__)
@@ -29,7 +22,6 @@ logger = logging.getLogger(__name__)
 # Página de inicio
 def index(request):
     return render(request, 'web/index.html')
-
 
 # -------------------------------------------
 # Vistas de autenticación y registro de usuarios
@@ -67,13 +59,12 @@ def register_view(request):
             # Enviar email de confirmación
             send_confirmation_email(user)
 
-            messages.success(request, 'Por favor, revisa tu correo electrónico para confirmar tu cuenta.')
+            messages.success(request, 'Please check your email to confirm your account.')
             return redirect('login')
     else:
         form = RegistrationForm()
 
     return render(request, 'web/register.html', {'form': form})
-
 
 # Función para enviar email de confirmación
 def send_confirmation_email(user):
@@ -84,13 +75,12 @@ def send_confirmation_email(user):
 
     # Enviar el email
     send_mail(
-        'Confirma tu registro',
-        f'Haz clic en el enlace para confirmar tu correo: {full_confirmation_url}',
+        'Confirm your registration',
+        f'Click the link to confirm your email: {full_confirmation_url}',
         settings.EMAIL_HOST_USER,
         [user.email],
         fail_silently=False,
     )
-
 
 # Vista para confirmar el email
 def confirm_email(request, token):
@@ -99,104 +89,85 @@ def confirm_email(request, token):
         user = user_profile.user
         user.is_active = True
         user.save()
-        messages.success(request, 'Tu cuenta ha sido confirmada. Ya puedes iniciar sesión.')
+        messages.success(request, 'Your account has been confirmed. You can now log in.')
         return redirect('login')
     except UserProfile.DoesNotExist:
-        messages.error(request, 'Token inválido o expirado.')
+        messages.error(request, 'Invalid or expired token.')
         return redirect('register')
-
 
 # --------------------------
 # Vistas del dashboard
 # --------------------------
 
+from binance.client import Client as FuturesClient  # Esto ya está importado como FuturesClient
+
 @login_required
 def dashboard_view(request):
     user_profile = get_object_or_404(UserProfile, user=request.user)
-    api_key = user_profile.get_api_key()
-    api_secret = user_profile.get_api_secret()
 
-    # Obtener cliente Spot y Futuros
-    spot_client = APIs.get_spot_client_instance(api_key, api_secret)
-    futures_client = APIs.get_futures_client_instance(api_key, api_secret)
+    # Desencriptar las claves API del usuario
+    fernet = Fernet(settings.ENCRYPTION_KEY)
+    api_key = fernet.decrypt(user_profile.api_key_encrypted).decode()
+    api_secret = fernet.decrypt(user_profile.api_secret_encrypted).decode()
 
-    # Obtener balances de Spot y Futuros
-    spot_balance = APIs.get_spot_balance(spot_client)
-    futures_balance, detailed_futures_balances = APIs.get_futures_balance(futures_client)
+    # Crear cliente de Binance con las claves del usuario
+    client = FuturesClient(api_key, api_secret)
 
-    # Calcular el cambio en el portafolio
-    portfolio_change = futures_balance - spot_balance
-    portfolio_change_percentage = (portfolio_change / spot_balance) * 100 if spot_balance != 0 else 0
-
-    # Simulación de datos de monedas (puedes reemplazarlo con datos reales)
-    coins = [
-        {'name': 'BTC', 'accounts': 'Spot', 'total': 1.2, 'available': 0.8, 'quantity': 1.2, 'price': 50000, 'price_24h': 49500},
-        {'name': 'ETH', 'accounts': 'Futures', 'total': 2.5, 'available': 2.0, 'quantity': 2.5, 'price': 3000, 'price_24h': 3100},
-    ]
-    coins_count = len(coins)
-
-    # Obtener señales desde `trade_signal.py`
-    signal_data = None
     try:
-        btc_data_1h = get_btc_data('1h', futures_client)  # Usamos `get_btc_data` de `trade_signal.py`
-        btc_data_1d = get_btc_data('1d', futures_client)
-        symbols = select_random_symbols(futures_client)
+        # Obtener balance en Spot
+        account_info = client.get_account()  # Información de cuenta Spot
+        spot_balance = sum(float(asset['free']) for asset in account_info['balances'] if float(asset['free']) > 0)
 
-        for symbol in symbols:
-            symbol_data = get_symbol_data(symbol, futures_client)
-            if symbol_data:
-                signal_data = analyze_trade(symbol, symbol_data, btc_data_1h, btc_data_1d, futures_client)
-                if signal_data:  # Si encuentra una señal, se rompe el ciclo
-                    break
+        # Obtener balance en Futuros
+        futures_balance = sum(float(balance['balance']) for balance in client.futures_account_balance() if balance['asset'] == 'USDT')
+
+        # Calcular el cambio en el portafolio
+        portfolio_change = futures_balance - spot_balance
+        portfolio_change_percentage = (portfolio_change / spot_balance) * 100 if spot_balance != 0 else 0
+
+        # Obtener datos de las monedas en Spot (ejemplo de cómo obtener BTC y ETH)
+        coins = []
+        for asset in account_info['balances']:
+            if float(asset['free']) > 0:  # Solo agregar si hay saldo disponible
+                symbol = asset['asset']
+                if symbol != 'USDT':  # Evitar USDT u otras monedas no deseadas
+                    try:
+                        # Obtener el precio de la moneda contra USDT
+                        ticker = client.get_symbol_ticker(symbol=symbol + 'USDT')
+                        price = float(ticker['price'])
+                        coins.append({
+                            'name': symbol,
+                            'accounts': 'Spot',
+                            'total': float(asset['free']),
+                            'available': float(asset['free']),
+                            'quantity': float(asset['free']),
+                            'price': price,
+                            'price_24h': price  # Esto puedes cambiarlo para obtener cambio en 24h.
+                        })
+                    except Exception as e:
+                        # Si no existe un par de comercio para esta moneda, ignórala
+                        logger.error(f"Error obteniendo datos para {symbol}: {e}")
+
+        coins_count = len(coins)
+
     except Exception as e:
-        logger.error(f"Error obteniendo señales: {e}")
+        logger.error(f"Error al obtener los datos de Binance: {e}")
+        # Si falla la conexión con la API o cualquier error, mostrar valores simulados
+        spot_balance = 0
+        futures_balance = 0
+        portfolio_change = 0
+        portfolio_change_percentage = 0
+        coins = []
 
     # Renderizar la plantilla del dashboard con las señales y datos
     return render(request, 'web/dashboard.html', {
         'spot_balance': spot_balance,
         'futures_balance': futures_balance,
-        'detailed_futures_balances': detailed_futures_balances,
         'portfolio_change': portfolio_change,
         'portfolio_change_percentage': portfolio_change_percentage,
         'coins': coins,
         'coins_count': coins_count,
-        'signal': signal_data,  # Enviar las señales al template
     })
-
-
-
-# --------------------------
-# Vista para obtener señales de trading
-# --------------------------
-
-
-# Ruta al archivo donde se almacenan las señales generadas por trade_signal.py
-SIGNAL_FILE = os.path.join(os.path.dirname(__file__), 'signals.json')
-
-@login_required
-def get_signal(request):
-    if request.method == 'POST':
-        try:
-            # Verificar si el archivo de señales existe
-            if os.path.exists(SIGNAL_FILE):
-                with open(SIGNAL_FILE, 'r') as file:
-                    signal_data = json.load(file)
-
-                if signal_data and signal_data.get('signal'):
-                    return JsonResponse({'signal': signal_data})
-                else:
-                    return JsonResponse({'message': 'No signals available yet.'}, status=200)
-            else:
-                return JsonResponse({'message': 'No signal file found.'}, status=200)
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Error decoding signal data.'}, status=500)
-
-        except Exception as e:
-            return JsonResponse({'error': f'Unexpected error: {str(e)}'}, status=500)
-
-    return JsonResponse({'error': 'Invalid request method.'}, status=400)
-
 
 # Vista para actualizar claves API
 @login_required
@@ -204,44 +175,68 @@ def update_api_keys(request):
     if request.method == 'POST':
         form = ApiKeyForm(request.POST)
         if form.is_valid():
-            # Usar la clase APIs para almacenar las claves API
-            api_key = form.cleaned_data['api_key']
-            api_secret = form.cleaned_data['api_secret']
+            # Actualizar las claves API
+            user_profile = UserProfile.objects.get(user=request.user)
+            fernet = Fernet(settings.ENCRYPTION_KEY)
+            user_profile.api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode())
+            user_profile.api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode())
+            user_profile.save()
 
-            # Almacenar las claves API en la clase APIs
-            APIs.set_api_key(request.user.id, api_key)
-            APIs.set_api_secret(request.user.id, api_secret)
-
-            messages.success(request, 'Tus claves API han sido actualizadas.')
+            messages.success(request, 'Your API keys have been updated.')
             return redirect('dashboard')
     else:
         form = ApiKeyForm()
 
     return render(request, 'web/update_api_keys.html', {'form': form})
 
-
 # -----------------------------
 # Recuperación de nombre de usuario
 # -----------------------------
 
-# Vista para recuperación de nombre de usuario
 def username_recovery_view(request):
     if request.method == 'POST':
         email = request.POST.get('email')
         try:
             user = User.objects.get(email=email)
-            # Enviar correo con el nombre de usuario
             send_mail(
-                'Tu nombre de usuario',
-                f'Hola, tu nombre de usuario es {user.username}.',
-                'noreply@yourdomain.com',  # Configura esto correctamente según tu servidor de correos
+                'Your Username',
+                f'Hello, your username is {user.username}.',
+                settings.EMAIL_HOST_USER,
                 [email],
                 fail_silently=False,
             )
-            messages.success(request, 'Se ha enviado un correo con tu nombre de usuario a tu dirección de email.')
-            return redirect('index')  # Redirige al inicio
+            messages.success(request, 'An email with your username has been sent to your email address.')
+            return redirect('index')
         except User.DoesNotExist:
-            messages.error(request, 'No se encontró ningún usuario con esa dirección de email.')
+            messages.error(request, 'No user found with that email address.')
             return render(request, 'web/username_recovery.html')
 
     return render(request, 'web/username_recovery.html')
+
+# Vista para seleccionar el plan de pago
+
+@login_required
+def payment_subscription(request):
+    if request.method == 'POST':
+        plan = request.POST.get('plan')
+        return redirect('payment_instructions', plan=plan)
+
+    # Renderizar la plantilla de selección de plan de pago
+    return render(request, 'web/payments/select_plan.html')  # Actualizado al nombre correcto de la plantilla
+
+
+# Vista para mostrar las instrucciones de pago
+@login_required
+def payment_instructions(request, plan):
+    payment_addresses = {
+        'monthly': 'usdt_address_monthly',
+        'quarterly': 'usdt_address_quarterly',
+        'annual': 'usdt_address_annual',
+    }
+
+    # Obtener la dirección de USDT según el plan seleccionado
+    address = payment_addresses.get(plan)
+
+    # Renderizar la plantilla de instrucciones de pago
+    return render(request, 'web/payments/instructions.html', {'address': address, 'plan': plan})
+

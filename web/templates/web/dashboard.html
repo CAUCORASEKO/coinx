@@ -12,32 +12,33 @@
 <body>
     {% include 'web/header.html' %}
 
-    <!-- Contenedor Principal del Dashboard -->
+    <!-- Main Dashboard Container -->
     <div class="dashboard-container">
-        <!-- Primera Fila: Gráficos de Account Allocation, Portfolio Change y Trading Signal -->
+        <!-- First Row: Account Allocation Chart, Portfolio Change -->
         <div class="dashboard-grid">
+            <!-- Account Allocation Widget -->
             <div class="widget balance-widget">
-                <h3>Accounts Allocation</h3>
+                <h3>Account Allocation</h3>
                 <div id="balance-chart">
-                    <canvas id="accountChart"></canvas> <!-- Gráfico circular -->
+                    <canvas id="accountChart"></canvas> <!-- Doughnut Chart -->
                 </div>
             </div>
 
+            <!-- Portfolio Change Widget -->
             <div class="widget portfolio-widget">
                 <h3>Portfolio Change</h3>
                 <p>${{ portfolio_change }} ({{ portfolio_change_percentage }}%)</p>
             </div>
 
-            <!-- Widget de Trading Signal actualizado para mostrar señales automáticamente -->
-            <div class="widget signal-widget">
-                <h3>Trading Signal</h3>
-                <p id="signal-status">No signal found yet.</p> <!-- Aquí se mostrará el estado de la señal -->
-                <!-- Contenedor para mostrar los detalles de la señal -->
-                <div id="signal-details" style="display: none;"></div> <!-- Oculto inicialmente -->
+            <!-- Payment System Access -->
+            <div class="widget payment-widget">
+                <h3>Access Subscription Payment</h3>
+                <p>If you want to access the private Telegram channel, please select a plan and proceed with the payment.</p>
+                <a href="{% url 'payment_subscription' %}" class="payment-link">Go to Payment Page</a> <!-- Corrected URL -->
             </div>
         </div>
 
-        <!-- Tabla de monedas -->
+        <!-- Coin Table -->
         <div class="widget coin-widget">
             <h3>Coins ({{ coins_count }})</h3>
             <table class="coin-table">
@@ -68,7 +69,7 @@
             </table>
         </div>
 
-        <!-- Botón de logout -->
+        <!-- Logout Button -->
         <form method="post" action="{% url 'logout' %}" class="logout-form">
             {% csrf_token %}
             <button type="submit" class="logout-button">Logout</button>
@@ -79,16 +80,16 @@
 
 </body>
 
-<!-- Script para el gráfico de asignación de cuentas -->
+<!-- Script for Account Allocation Chart -->
 <script>
     var ctx = document.getElementById('accountChart').getContext('2d');
     var accountChart = new Chart(ctx, {
         type: 'doughnut', 
         data: {
-            labels: ['Spot Balance', 'Futures Balance'],
+            labels: ['Spot Balance', 'Futures Balance'],  <!-- Etiquetas del gráfico -->
             datasets: [{
-                data: [{{ spot_balance }}, {{ futures_balance }}], 
-                backgroundColor: ['#007bff', '#28a745'],
+                data: [{{ spot_balance }}, {{ futures_balance }}],  <!-- Datos que vienen del backend -->
+                backgroundColor: ['#007bff', '#28a745'],  <!-- Colores del gráfico -->
                 borderColor: ['#fff'],
                 borderWidth: 1
             }]
@@ -97,62 +98,9 @@
             responsive: true,
             maintainAspectRatio: false,
             legend: { position: 'bottom' },
-            title: { display: true, text: 'Accounts Allocation' }
+            title: { display: true, text: 'Account Allocation' }  <!-- Título del gráfico -->
         }
     });
-</script>
-
-<!-- Script para manejar las señales de trading -->
-<script>
-    function fetchSignal() {
-        var signalStatus = document.getElementById("signal-status");
-        var signalDetails = document.getElementById("signal-details");
-
-        // Enviar la solicitud al backend para obtener las señales
-        fetch("{% url 'get_signal' %}", {
-            method: "POST",
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok ' + response.statusText);
-            }
-            return response.json();  // Parsear la respuesta como JSON
-        })
-        .then(data => {
-            if (data.error) {
-                signalStatus.innerHTML = `<p>Error: ${data.error}</p>`;
-            } else if (data.signal && data.signal.symbol) {
-                // Si se encontró una señal válida, mostrarla
-                var signalDetailsHTML = `
-                    <p><strong>Symbol:</strong> ${data.signal.symbol}</p>
-                    <p><strong>Entry Point 1:</strong> ${data.signal.entry1}</p>
-                    <p><strong>Entry Point 2:</strong> ${data.signal.entry2}</p>
-                    <p><strong>Stop Loss:</strong> ${data.signal.stop_loss}</p>
-                    <p><strong>Take Profits:</strong> ${data.signal.take_profits.join(', ')}</p>
-                    <p><strong>Signal Type:</strong> ${data.signal.signal_type}</p>
-                    <p><strong>Signal Strength:</strong> ${data.signal.signal_strength}%</p>
-                `;
-                signalStatus.innerHTML = "<p>Signal found:</p>";
-                signalDetails.innerHTML = signalDetailsHTML;
-                signalDetails.style.display = "block";  // Mostrar detalles de la señal
-            } else {
-                // Si no hay señal disponible aún
-                signalStatus.innerHTML = "<p>No signal found yet. Keep searching...</p>";
-            }
-        })
-        .catch(error => {
-            signalStatus.innerHTML = `<p>Error occurred: ${error.message}</p>`;
-        });
-    }
-
-    // Ejecutar la función automáticamente cada 5 segundos
-    setInterval(fetchSignal, 5000);  // Buscar las señales automáticamente cada 5 segundos
-
-    // Ejecutar la búsqueda al cargar la página
-    document.addEventListener('DOMContentLoaded', fetchSignal);
 </script>
 
 </html>

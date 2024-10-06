@@ -11,24 +11,41 @@ import logging
 import threading
 import time
 from binance.exceptions import BinanceAPIException
-from django.core.management.base import BaseCommand  # Importar BaseCommand
+from django.core.management.base import BaseCommand
+
+# Definición de la clase para evitar mensajes duplicados
+class NoDuplicateFilter(logging.Filter):
+    def __init__(self):
+        super().__init__()
+        self.last_log = None
+
+    def filter(self, record):
+        current_log = record.getMessage()
+        if current_log != self.last_log:
+            self.last_log = current_log
+            return True
+        return False
 
 # Configuración del logger
-
-# Crear el logger
 logger = logging.getLogger(__name__)
-
-# Verifica si el logger ya tiene manejadores para evitar duplicación
-if not logger.hasHandlers():  # Solo agrega el manejador si no existen
-    # Configurar el manejador del logger
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-# Establecer el nivel de log
 logger.setLevel(logging.INFO)
+
+# Configuración del manejador y filtro para evitar duplicados
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.addFilter(NoDuplicateFilter())
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+
+# Limpiar manejadores existentes y aplicar nuevo manejador
+if logger.hasHandlers():
+    logger.handlers.clear()
+logger.addHandler(console_handler)
+
+def log_single_instance(symbol, message, cache={}):
+    if cache.get(symbol) != message:
+        logger.info(message)
+        cache[symbol] = message
 
 # Asegúrate de que la ruta de importación esté correcta para obtener el cliente
 from web.management.commands.global_client import get_global_client  # Importa el cliente global
@@ -45,12 +62,11 @@ except Exception as e:
 
 # Obtener el cliente de Binance
 client = get_global_client()
-
 if client is None:
     logger.error("No se pudo inicializar el cliente global de Binance. Abortando.")
     sys.exit(1)
 
-# Aquí encapsulamos la lógica de Django Command:
+# Aquí encapsulamos la lógica de Django Command
 class Command(BaseCommand):
     help = 'Inicia el análisis de trading avanzado'
 
@@ -59,7 +75,6 @@ class Command(BaseCommand):
         # Crear y empezar el hilo sin detener el proceso principal
         thread = threading.Thread(target=perform_trade_analysis)
         thread.start()
-
 
 
 # Configuración centralizada
@@ -78,6 +93,7 @@ if client is None:
 
 # Función para obtener información de la cuenta
 def fetch_futures_account(client, retries=3, delay=5):
+    last_exception = None  # Almacena la última excepción
     for attempt in range(retries):
         try:
             response = client.futures_account()
@@ -85,19 +101,14 @@ def fetch_futures_account(client, retries=3, delay=5):
             if isinstance(response, dict):
                 return response
         except (BinanceAPIException, Exception) as e:
-            logger.error(f"Error durante la solicitud API: {e}")
+            last_exception = e
             time.sleep(delay)
+    
+    # Log solo si se agotaron todos los reintentos
+    logger.error(f"Error durante la solicitud API: {last_exception}")
     logger.error("Se excedió el máximo de reintentos para la API de Binance.")
     return None
 
-
-# Llama a la función para obtener el resultado de la cuenta de futuros
-account_data = fetch_futures_account(client)
-
-if account_data is None:
-    logger.error("No se pudo obtener la cuenta de futuros. Abortando.")
-else:
-    logger.info(f"Datos de cuenta: {account_data}")
 
 
 # Función para obtener información de la cuenta
@@ -144,35 +155,41 @@ def calculate_fibonacci_levels(high, low):
 market_cap_cache = {}
 market_cap_last_fetch = {}
 
-def get_market_cap_from_coingecko(crypto_id, cache_duration=3600):
+def get_market_cap_from_coingecko(crypto_id, cache_duration=3600, retries=3, delay=5):
     """
-    Obtiene el Market Cap desde CoinGecko con caché para evitar múltiples consultas seguidas.
+    Obtiene el Market Cap desde CoinGecko con caché y reintentos.
     """
     current_time = time.time()
 
-    # Si el market cap fue consultado recientemente, usa el caché
+    # Uso de caché si el tiempo es reciente
     if crypto_id in market_cap_cache and (current_time - market_cap_last_fetch[crypto_id] < cache_duration):
-        logger.info(f"Usando el valor en caché del Market Cap para {crypto_id}")
+        logger.info(f"Usando caché para Market Cap de {crypto_id}")
         return market_cap_cache[crypto_id]
-    
-    # De lo contrario, realiza la solicitud a CoinGecko
+
+    # Intento de obtener datos de CoinGecko
     url = f"https://api.coingecko.com/api/v3/coins/{crypto_id}"
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            market_cap = data['market_data']['market_cap']['usd']
-            
-            # Actualizar caché y hora de consulta
-            market_cap_cache[crypto_id] = market_cap
-            market_cap_last_fetch[crypto_id] = current_time
-            return market_cap
-        else:
-            logger.error(f"Error al obtener Market Cap para {crypto_id} de CoinGecko. Status code: {response.status_code}")
-            return None
-    except Exception as e:
-        logger.error(f"Error al obtener Market Cap de CoinGecko: {e}")
-        return None
+    for attempt in range(retries):
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                market_cap = data['market_data']['market_cap']['usd']
+
+                # Actualizar caché
+                market_cap_cache[crypto_id] = market_cap
+                market_cap_last_fetch[crypto_id] = current_time
+                return market_cap
+            else:
+                logger.error(f"Error {response.status_code} en CoinGecko para {crypto_id}. Reintentando...")
+                time.sleep(delay)
+
+        except Exception as e:
+            logger.error(f"Error al obtener Market Cap para {crypto_id}: {e}. Reintentando en {delay} segundos.")
+            time.sleep(delay)
+
+    logger.error(f"No se pudo obtener Market Cap de {crypto_id} después de {retries} intentos.")
+    return None
+
 
     
     
@@ -186,84 +203,112 @@ def analyze_btc_market_cap(btc_data):
     """
     # Obtener el Market Cap de BTC desde CoinGecko
     btc_market_cap = get_market_cap_from_coingecko('bitcoin')
-
     if btc_market_cap:
         logger.info(f"Market Cap de BTC: ${btc_market_cap:,.2f}")
+    else:
+        logger.warning("No se pudo obtener el Market Cap de BTC.")
+
+    # Validación para columnas requeridas
+    required_columns = {'high', 'low', 'close', 'volume'}
+    if not required_columns.issubset(btc_data.columns):
+        missing_cols = required_columns - set(btc_data.columns)
+        logger.error(f"Error: Faltan columnas importantes en el DataFrame de BTC: {missing_cols}")
+        return None
 
     # Realizar el análisis de BTC (indicadores técnicos)
-    
     # 1. VWAP
     btc_data['vwap'] = calculate_vwap(btc_data)
-    
+
     # 2. ATR (Average True Range)
-    btc_data['atr'] = ta.volatility.average_true_range(btc_data['high'], btc_data['low'], btc_data['close'])
-    
+    btc_data['atr'] = ta.volatility.average_true_range(btc_data['high'], btc_data['low'], btc_data['close']).fillna(0)
+
     # 3. EMAs
-    btc_data['ema_50'] = ta.trend.ema_indicator(btc_data['close'], window=50)
-    btc_data['ema_200'] = ta.trend.ema_indicator(btc_data['close'], window=200)
-    
+    btc_data['ema_50'] = ta.trend.ema_indicator(btc_data['close'], window=50).fillna(method='bfill')
+    btc_data['ema_200'] = ta.trend.ema_indicator(btc_data['close'], window=200).fillna(method='bfill')
+
     # 4. RSI (Relative Strength Index)
-    btc_data['rsi'] = ta.momentum.rsi(btc_data['close'])
-    
+    btc_data['rsi'] = ta.momentum.rsi(btc_data['close']).fillna(50)
+
     # 5. MFI (Money Flow Index)
-    btc_data['mfi'] = ta.volume.money_flow_index(btc_data['high'], btc_data['low'], btc_data['close'], btc_data['volume'])
-    
+    btc_data['mfi'] = ta.volume.money_flow_index(
+        btc_data['high'], btc_data['low'], btc_data['close'], btc_data['volume']
+    ).fillna(50)
+
     # 6. MACD (Moving Average Convergence Divergence)
-    btc_data['macd'] = ta.trend.macd_diff(btc_data['close'])
+    btc_data['macd'] = ta.trend.macd_diff(btc_data['close']).fillna(0)
 
     # 7. Ichimoku Indicator
-    btc_data = calculate_ichimoku(btc_data)  # Función ya implementada en tu script
+    btc_data = calculate_ichimoku(btc_data).fillna(method='bfill')
 
-    # 8. Perfilador de Volumen
-    volume_profile = calculate_volume_profile_with_nodes(btc_data)
-    logger.info(f"Perfil de Volumen: {volume_profile}")
+    # 8. Perfil de Volumen
+    try:
+        volume_profile = calculate_volume_profile_with_nodes(btc_data)
+        if volume_profile is not None and not volume_profile.empty:
+            logger.info(f"Perfil de Volumen: {volume_profile}")
+        else:
+            logger.warning("El perfil de volumen está vacío.")
+    except Exception as e:
+        logger.error(f"Error al calcular el perfil de volumen: {e}")
 
-    # 9. Fibonacci (Retrocesos y Extensiones)
-    high = btc_data['high'].max()  # Obtener el valor máximo
-    low = btc_data['low'].min()    # Obtener el valor mínimo
-    fibonacci_levels = calculate_fibonacci_levels(high, low)  # Asegurarse de pasar ambos valores
+    # 9. Niveles de Fibonacci
+    high, low = btc_data['high'].max(), btc_data['low'].min()
+    fibonacci_levels = calculate_fibonacci_levels(high, low)
+    for level, value in fibonacci_levels.items():
+        btc_data[f'fibonacci_{level}'] = value
+
     logger.info(f"Niveles de Fibonacci calculados: {fibonacci_levels}")
-
     return btc_data
-
 
 
 
 def analyze_random_symbol_market_cap(symbol, data):
     """
-    Realiza el análisis para un símbolo aleatorio, incluyendo el cálculo del Market Cap.
+    Realiza el análisis para un símbolo aleatorio, pero solo incluye el Market Cap para BTC.
     """
-    # Obtener la criptomoneda base del símbolo (por ejemplo, "BTC" en "BTCUSDT")
-    crypto_base = symbol.replace("USDT", "").lower()
-
-    # Obtener el Market Cap de la criptomoneda base
-    market_cap = get_market_cap_from_coingecko(crypto_base)
-    
-    if market_cap:
-        logger.info(f"Market Cap de {crypto_base.upper()}: ${market_cap:,.2f}")
+    # Solo obtener el Market Cap si el símbolo es BTC
+    if symbol == 'BTCUSDT':
+        crypto_base = 'bitcoin'  # Solo en el caso de BTC obtener el market cap
+        market_cap = get_market_cap_from_coingecko(crypto_base)
+        
+        if market_cap:
+            logger.info(f"Market Cap de {crypto_base.upper()}: ${market_cap:,.2f}")
+        else:
+            logger.error(f"No se pudo obtener el Market Cap para {crypto_base.upper()}.")
     else:
-        logger.error(f"No se pudo obtener el Market Cap para {crypto_base.upper()}.")
+        logger.info(f"Saltando la obtención del Market Cap para {symbol}")
 
     # Realizar el análisis de indicadores técnicos para el símbolo
     data = calculate_technical_indicators(data)
     
     return data
+
    
     
     
 
-def get_order_book(symbol):
-    for _ in range(3):
+def get_order_book(symbol, retries=3, delay=5):
+    """
+    Obtiene el libro de órdenes con reintentos en caso de error.
+    """
+    for attempt in range(retries):
         try:
             order_book = client.futures_order_book(symbol=symbol, limit=ORDER_BOOK_LIMIT)
             bids = [(float(bid[0]), float(bid[1])) for bid in order_book['bids']]
             asks = [(float(ask[0]), float(ask[1])) for ask in order_book['asks']]
+
+            # Confirmación de datos válidos
             if bids and asks:
                 return bids, asks
+            else:
+                logger.error(f"Bids o asks vacíos para {symbol}. Reintentando...")
+
         except Exception as e:
-            logger.error(f"Error al obtener el libro de órdenes para {symbol}: {e}")
-        time.sleep(2)
+            logger.error(f"Error al obtener el libro de órdenes para {symbol}: {e}. Reintentando en {delay} segundos.")
+            time.sleep(delay)
+
+    logger.error(f"Error: No se pudo obtener el libro de órdenes para {symbol} después de {retries} intentos.")
     return [], []
+
 
 
 def calculate_weighted_average_price(levels):
@@ -345,26 +390,14 @@ def identify_key_levels(bids, asks):
     resistance = calculate_weighted_average_price(asks)
     return support, resistance
 
+
+
 def calculate_vwap(data):
     return ta.volume.volume_weighted_average_price(data['high'], data['low'], data['close'], data['volume'])
 
-def calculate_emas(data, short_period=9, long_period=26):
-    """
-    Calcula las EMAs (medias móviles exponenciales) para los períodos corto y largo.
-    """
-    data['ema_short'] = ta.trend.ema_indicator(data['close'], window=short_period)
-    data['ema_long'] = ta.trend.ema_indicator(data['close'], window=long_period)
-    return data
 
-def detect_ema_cross(data):
-    """
-    Detecta un cruce de EMAs en los datos.
-    """
-    if data['ema_short'].iloc[-2] < data['ema_long'].iloc[-2] and data['ema_short'].iloc[-1] > data['ema_long'].iloc[-1]:
-        return "Bullish Cross"
-    elif data['ema_short'].iloc[-2] > data['ema_long'].iloc[-2] and data['ema_short'].iloc[-1] < data['ema_long'].iloc[-1]:
-        return "Bearish Cross"
-    return None
+
+
 
 def calculate_ichimoku(data):
     ichimoku = ta.trend.IchimokuIndicator(data['high'], data['low'], window1=9, window2=26, window3=52)
@@ -746,121 +779,167 @@ def calculate_entry_stop_take(symbol, data, btc_data_1h, btc_data_1d):
 
 def calculate_technical_indicators(data):
     try:
-        if data.empty:
-            logger.error(f"Error: DataFrame vacío al calcular indicadores técnicos")
-            return None
-        
-        if 'high' not in data.columns or 'low' not in data.columns or 'close' not in data.columns:
-            logger.error("Error: Faltan columnas importantes en el DataFrame para calcular indicadores técnicos.")
+        # Asegurarse de que las columnas necesarias existen
+        required_columns = {'high', 'low', 'close', 'volume'}
+        if not required_columns.issubset(data.columns):
+            missing_cols = required_columns - set(data.columns)
+            logger.error(f"Error: Faltan columnas importantes en el DataFrame: {missing_cols}")
             return None
 
-        # Cálculo de indicadores técnicos
-        data['vwap'] = calculate_vwap(data)
+        # Intento para calcular ATR directamente
         data['atr'] = ta.volatility.average_true_range(data['high'], data['low'], data['close'])
+        
+        # Verificación después del primer intento
+        if data['atr'].isnull().all():
+            logger.warning("ATR no pudo ser calculado en el primer intento. Aplicando tratamiento de datos.")
+
+            # Tratamiento de datos si el cálculo de ATR falla
+            data = handle_null_values(data, "ATR Calculation")  # Llenar nulos y eliminar duplicados si existen
+            data['atr'] = ta.volatility.average_true_range(data['high'], data['low'], data['close'])  # Recalcular ATR
+            
+            # Si aún no se puede calcular, forzar el relleno
+            if data['atr'].isnull().all():
+                data['atr'].fillna(data['atr'].rolling(window=2, min_periods=1).mean(), inplace=True)
+                logger.info("ATR forzado mediante media móvil.")
+
+        # Calcular el resto de los indicadores técnicos solo si ATR fue calculado
+        data['vwap'] = calculate_vwap(data)
         data['ema_50'] = ta.trend.ema_indicator(data['close'], window=50)
         data['ema_200'] = ta.trend.ema_indicator(data['close'], window=200)
         data['rsi'] = ta.momentum.rsi(data['close'])
-        data['mfi'] = ta.volume.money_flow_index(data['high'], data['low'], data['close'], data['volume'])
         data['macd'] = ta.trend.macd_diff(data['close'])
+        data['mfi'] = ta.volume.money_flow_index(data['high'], data['low'], data['close'], data['volume'])
 
-        # Calcular niveles de Fibonacci
-        high = data['high'].max()
-        low = data['low'].min()
+        # Calcular niveles de Fibonacci e Ichimoku
+        high, low = data['high'].max(), data['low'].min()
         fibonacci_levels = calculate_fibonacci_levels(high, low)
-        
-        # Añadir los niveles de Fibonacci al DataFrame
         for level, value in fibonacci_levels.items():
             data[f'fibonacci_{level}'] = value
-
-        # Calcular Ichimoku
         data = calculate_ichimoku(data)
-    
+
     except Exception as e:
-        logger.error(f"Error al calcular los indicadores técnicos: {e}")
+        logger.error(f"Error crítico al calcular los indicadores técnicos: {e}")
         return None
-    
+
+    # Mensaje final para confirmar el cálculo de ATR
+    if data['atr'].isnull().all():
+        logger.error("No se pudo calcular ATR incluso después de múltiples intentos.")
+        return None
+    else:
+        logger.info("ATR calculado exitosamente.")
+
     return data
 
 
 
 
-def evaluate_entry_quality(trend, price, vwap, atr, rsi, macd, ema_50, tenkan_sen, kijun_sen, senkou_span_a, senkou_span_b, volume_profile):
+
+def calculate_atr(data):
     """
-    Evalúa la calidad de un punto de entrada basado en indicadores técnicos y perfiles de volumen.
-    Devuelve un puntaje de calidad mayor si las condiciones del mercado son favorables.
+    Calcula el ATR si no existe en el DataFrame y lo añade.
     """
-    price_to_vwap = abs(price - vwap) / vwap
-    atr_factor = abs(price - vwap) / atr
+    if 'atr' not in data.columns:
+        try:
+            data['atr'] = ta.volatility.average_true_range(data['high'], data['low'], data['close'])
+        except Exception as e:
+            logger.error(f"Error al calcular ATR: {e}")
+            return None
+    return data['atr']
 
-    # Asegurarse de que el precio tiene un volumen asociado en el perfil
-    volume_at_price = volume_profile.get(price, 0)
 
-    # Ajustar el peso del perfil de volumen según HVN/LVN
-    is_hvn = volume_profile['HVN'].iloc[-1] if 'HVN' in volume_profile else False
-    is_lvn = volume_profile['LVN'].iloc[-1] if 'LVN' in volume_profile else False
-    volume_score = 1.5 if is_lvn else 0.5 if is_hvn else 1.0  # LVN favorece entradas más agresivas
 
-    # Cálculo de la calidad basado en la tendencia del mercado y otros indicadores
-    if trend == "up":
-        quality = (
-            (price > tenkan_sen) * 0.7 +   # Precio mayor a la Tenkan-sen
-            (price > kijun_sen) * 0.7 +    # Precio mayor a la Kijun-sen
-            (price > ema_50) * 0.7 +       # Precio mayor a la EMA 50
-            (1 if 20 < rsi < 80 else 0) * 1.2 +  # RSI en rango saludable
-            (1 if macd > 0 else 0) * 1.0 +       # MACD indicando tendencia positiva
-            (1 - min(price_to_vwap, 1)) * 1.0 +  # Proximidad al VWAP, más cerca es mejor
-            (price > senkou_span_a) * 0.7 +      # Precio mayor a la Senkou Span A
-            (price > senkou_span_b) * 0.7 +      # Precio mayor a la Senkou Span B
-            (1 if atr_factor < 1.0 else 0) * 1.0 + # Bajo factor ATR
-            volume_score                        # Puntaje de volumen basado en HVN/LVN
-        )
-    else:
-        quality = (
-            (price < tenkan_sen) * 0.7 +   # Precio menor a la Tenkan-sen
-            (price < kijun_sen) * 0.7 +    # Precio menor a la Kijun-sen
-            (price < ema_50) * 0.7 +       # Precio menor a la EMA 50
-            (1 if 20 < rsi < 80 else 0) * 1.2 +  # RSI en rango saludable
-            (1 if macd < 0 else 0) * 1.0 +       # MACD indicando tendencia negativa
-            (1 - min(price_to_vwap, 1)) * 1.0 +  # Proximidad al VWAP, más cerca es mejor
-            (price < senkou_span_a) * 0.7 +      # Precio menor a la Senkou Span A
-            (price < senkou_span_b) * 0.7 +      # Precio menor a la Senkou Span B
-            (1 if atr_factor < 1.0 else 0) * 1.0 + # Bajo factor ATR
-            volume_score                        # Puntaje de volumen basado en HVN/LVN
-        )
+
+
+def evaluate_entry_quality(data):
+    # Calcular `dr` basado en la estrategia
+    b1 = 2 if data['rsi'].iloc[-1] < 20 else 1 if data['rsi'].iloc[-1] < 30 else -2 if data['rsi'].iloc[-1] > 80 else -1 if data['rsi'].iloc[-1] > 70 else 0
+    b2 = 2 if data['stoch'].iloc[-1] < 20 else 1 if data['stoch'].iloc[-1] < 30 else -2 if data['stoch'].iloc[-1] > 80 else -1 if data['stoch'].iloc[-1] > 70 else 0
+    b3 = 1 if data['close'].iloc[-1] > data['ema_20'].iloc[-1] else -1
+    b4 = 1 if data['ema_20'].iloc[-1] > data['ema_20'].iloc[-2] else -1
+
+    # Puntuación total
+    sm = b1 + b2 + b3 + b4
+    dr = 2 if sm > 3 else 1 if sm > 1 else -2 if sm < -3 else -1 if sm < -1 else 0
+
+    # Determinar el color de alerta
+    decision_color = "lime" if dr > 1 else "green" if dr > 0 else "darkRed" if dr < -1 else "red" if dr < 0 else "blue"
     
-    return quality
+    # Calidad basada en la puntuación de `dr`
+    quality = 7.5 if dr > 0 else 5.0 if dr < 0 else 4.0
+
+    return quality, decision_color
 
 
 
 def calculate_volume_profile_with_nodes(data, num_bins=20, volume_threshold=0.05):
-    # Filtrar solo las columnas numéricas
-    numeric_data = data.select_dtypes(include=[np.number])
+    # Asegúrate de que 'atr' esté calculado
+    if 'atr' not in data.columns or data['atr'].isnull().all():
+        data['atr'] = calculate_atr(data)
+        if data['atr'].isnull().all():
+            logger.error("No se pudo calcular ATR en calculate_volume_profile_with_nodes. Terminando función.")
+            return pd.DataFrame()  # Devolvemos un DataFrame vacío en caso de error
 
-    if 'close' not in numeric_data.columns or 'volume' not in numeric_data.columns or 'atr' not in numeric_data.columns:
-        raise ValueError("El DataFrame debe contener las columnas 'close', 'volume' y 'atr' como valores numéricos.")
-
-    # Continuar con el cálculo
-    price_min = numeric_data['close'].min()
-    price_max = numeric_data['close'].max()
+    # Definir los límites de los bins
+    price_min = data['close'].min()
+    price_max = data['close'].max()
     bins = np.linspace(price_min, price_max, num_bins)
 
-    # Agrupar los precios en bins y sumar el volumen por cada rango de precios
-    numeric_data['price_bin'] = pd.cut(numeric_data['close'], bins=bins, include_lowest=True)
-    volume_profile = numeric_data.groupby('price_bin', observed=False)['volume'].sum().reset_index()
+    # Crear `price_bin` y asignar como `str`
+    data['price_bin'] = pd.cut(data['close'], bins=bins, include_lowest=True, duplicates='drop').astype(str)
 
-    # Calcular el porcentaje de volumen para cada bin
+    # Agrupar y calcular el perfil de volumen
+    volume_profile = data.groupby('price_bin')['volume'].sum().reset_index()
     total_volume = volume_profile['volume'].sum()
-
-    if total_volume == 0:
-        raise ValueError("El volumen total es cero, no se puede calcular el perfil de volumen.")
-
+    
+    # Calcula el porcentaje de volumen y determina HVN y LVN
     volume_profile['volume_percent'] = volume_profile['volume'] / total_volume
+    volume_threshold_adjusted = volume_threshold * (1 + data['atr'].iloc[-1] / data['close'].mean())
+    volume_profile['HVN'] = volume_profile['volume_percent'] > volume_threshold_adjusted
+    volume_profile['LVN'] = volume_profile['volume_percent'] < (volume_threshold_adjusted / 2)
 
-    # Detectar HVN y LVN
-    volume_profile['HVN'] = volume_profile['volume_percent'] > volume_threshold
-    volume_profile['LVN'] = volume_profile['volume_percent'] < (volume_threshold / 2)
+    # Calcular el precio promedio para HVN y LVN usando el valor medio de cada bin
+    hvn_price = (
+        volume_profile.loc[volume_profile['HVN'], 'price_bin']
+        .apply(lambda x: (float(x[1:-1].split(', ')[0]) + float(x[1:-1].split(', ')[1])) / 2 if x is not None else None)
+        .dropna()
+        .mean()
+    )
+    lvn_price = (
+        volume_profile.loc[volume_profile['LVN'], 'price_bin']
+        .apply(lambda x: (float(x[1:-1].split(', ')[0]) + float(x[1:-1].split(', ')[1])) / 2 if x is not None else None)
+        .dropna()
+        .mean()
+    )
 
-    return volume_profile
+    return hvn_price, lvn_price, volume_profile if isinstance(volume_profile, pd.DataFrame) else pd.DataFrame()
+
+
+
+
+
+# Crea un caché global para almacenar el último mensaje registrado para cada símbolo
+volume_profile_cache = {}
+
+def log_volume_profile(symbol, hvn_price, lvn_price):
+    """
+    Registra el perfil de volumen solo si el mensaje no ha sido registrado previamente en este ciclo.
+    """
+    message = f"Perfil de Volumen calculado para {symbol}. HVN: {hvn_price}, LVN: {lvn_price}"
+
+    # Verifica si el mensaje es el mismo que el último registrado para este símbolo
+    if volume_profile_cache.get(symbol) != message:
+        logger.info(message)  # Solo registra si el mensaje es nuevo
+        volume_profile_cache[symbol] = message  # Actualiza el caché con el nuevo mensaje
+
+def log_neutral_condition(symbol):
+    """
+    Registra las condiciones neutrales para un símbolo solo si no ha sido registrado previamente.
+    """
+    message = f"Condiciones neutrales para {symbol}, omitiendo señal."
+
+    if volume_profile_cache.get(symbol) != message:
+        logger.info(message)
+        volume_profile_cache[symbol] = message
 
 
 
@@ -938,6 +1017,33 @@ def find_entry_point(symbol, data, bids, asks, trend, support, resistance):
     else:
         logger.info(f"No se encontraron puntos de entrada válidos para {symbol}.")
         return None, None
+    
+
+
+def handle_null_values(data, symbol):
+    # Verificar y registrar valores nulos en columnas específicas
+    if data.isnull().values.any():
+        # Identificar columnas con nulos
+        null_columns = data.columns[data.isnull().any()].tolist()
+        logger.error(f"Error: Existen valores nulos en los datos de {symbol}. Columnas con nulos: {null_columns}")
+
+        # Llenar nulos hacia adelante y luego eliminar filas que aún tengan nulos
+        data = data.fillna(method='ffill').dropna()
+
+        # Verificar si persisten nulos después del tratamiento
+        if data.isnull().values.any():
+            remaining_nulls = data.columns[data.isnull().any()].tolist()
+            logger.error(f"Persisten valores nulos en {symbol} tras el tratamiento. Columnas con nulos: {remaining_nulls}")
+            return None  # Omitir este símbolo si los nulos persisten
+
+    # Verificar y eliminar duplicados
+    if data.duplicated().any():
+        logger.info(f"Datos duplicados encontrados para {symbol}. Eliminando duplicados.")
+        data = data.drop_duplicates()
+        if data.empty:
+            logger.error(f"Error: Después de eliminar duplicados, los datos de {symbol} están vacíos. Saltando análisis.")
+            return None
+    return data
 
 
 
@@ -956,21 +1062,25 @@ def check_market_conditions(data):
 
 
 def calculate_stop_loss_take_profit(entry_price, data, trend):
+    """
+    Calcula el stop loss y los objetivos de ganancias con ATR.
+    """
+    if 'atr' not in data.columns:
+        calculate_atr(data)
+    
     atr = data['atr'].iloc[-1]
     rsi = data['rsi'].iloc[-1]
     
-    # Ajustar el multiplicador ATR en función de la volatilidad actual
-    atr_multiplier = 2 if atr > data['close'].mean() * 0.01 else 1.5
-
     if trend == "up":
-        stop_loss = entry_price - atr * atr_multiplier
+        stop_loss = entry_price - atr * 1.5
         take_profits = calculate_take_profits(entry_price, atr, rsi, trend="up")
     else:
-        stop_loss = entry_price + atr * atr_multiplier
+        stop_loss = entry_price + atr * 1.5
         take_profits = calculate_take_profits(entry_price, atr, rsi, trend="down")
     
     signal_strength = calculate_signal_strength(data, trend, entry_price)
     return stop_loss, take_profits, signal_strength
+
 
 
 def calculate_take_profits(entry_price, atr, rsi, trend):
@@ -1225,7 +1335,6 @@ def send_to_dashboard(message):
     return Response(200)
 
 
-
 def send_to_dashboard(message):
     """
     Simula el envío de una señal al dashboard o sistema de notificaciones.
@@ -1241,23 +1350,7 @@ def send_to_dashboard(message):
     return Response(200)
 
 
-
-def send_to_dashboard(message):
-    """
-    Simula el envío de una señal al dashboard o sistema de notificaciones.
-    Aquí puedes implementar la lógica real para enviar la señal.
-    """
-    # Simulación de respuesta correcta
-    class Response:
-        def __init__(self, status_code, text="Success"):
-            self.status_code = status_code
-            self.text = text
-
-    # Supón que el envío fue exitoso
-    return Response(200)
-
-
-def analyze_with_ichimoku_theories(data, symbol):
+def analyze_with_ichimoku_theories(data, symbol, last_signal={}):
     """
     Integra la teoría del tiempo, ondas y precios para generar señales de trading.
     """
@@ -1274,18 +1367,24 @@ def analyze_with_ichimoku_theories(data, symbol):
         # Calcula objetivos de precios
         v_target, e_target, nt_target = calculate_price_targets(data, wave_type='N')
         
-        # Usa todo esto para emitir señales
-        signal = None
-        if data['ichimoku_cross'].iloc[-1] == 'Bullish Cross' and data['close'].iloc[-1] > data['senkou_span_a'].iloc[-1]:
+        # Determina la señal Ichimoku
+        if data['tenkan_sen'].iloc[-1] > data['kijun_sen'].iloc[-1] and data['close'].iloc[-1] > data['senkou_span_a'].iloc[-1]:
             signal = "Buy"
-        elif data['ichimoku_cross'].iloc[-1] == 'Bearish Cross' and data['close'].iloc[-1] < data['senkou_span_b'].iloc[-1]:
+        elif data['tenkan_sen'].iloc[-1] < data['kijun_sen'].iloc[-1] and data['close'].iloc[-1] < data['senkou_span_b'].iloc[-1]:
             signal = "Sell"
-    
+        else:
+            signal = "Neutral"
+
+        # Log solo si la señal ha cambiado
+        if last_signal.get(symbol) != signal:
+            logger.info(f"Ichimoku Signal para {symbol}: {signal}")
+            last_signal[symbol] = signal
+
     except Exception as e:
         logger.error(f"Error en el análisis Ichimoku para {symbol}: {e}")
         signal = None
         v_target, e_target, nt_target, time_cycles, wave_patterns = None, None, None, None, None
-    
+
     # Retorna siempre un diccionario con las claves, aunque alguna falle
     return {
         'signal': signal,
@@ -1293,7 +1392,10 @@ def analyze_with_ichimoku_theories(data, symbol):
         'time_cycles': time_cycles,
         'wave_patterns': wave_patterns
     }
-    
+
+
+
+
 
 def analyze_ichimoku(data):
     """
@@ -1325,58 +1427,54 @@ def analyze_ichimoku(data):
 
 
 def analyze_trade(symbol, data, btc_data_1h, btc_data_1d):
-    if data is None or data.empty:  # Validación clara del DataFrame
-        logger.error(f"Error: No se encontraron datos para {symbol}")
-        return False
-
-    # Verificar si hay valores nulos
-    if data.isnull().values.any():
-        logger.error(f"Error: Existen valores nulos en los datos de {symbol}")
-        return False
-
-    # Calcular EMAs
-    data = calculate_emas(data)
+    """
+    Realiza el análisis de trading para un símbolo dado si los datos son válidos y completos.
+    """
+    # Validación inicial de los datos de entrada
     if data is None or data.empty:
-        logger.error(f"Error: No se pudieron calcular las EMAs para {symbol}")
+        logger.error(f"Error: Datos insuficientes o no válidos para {symbol}. Omitiendo análisis.")
         return False
 
-    # Detectar cruce de EMAs
-    ema_cross = detect_ema_cross(data)
+    # Validación de los datos de BTC (1h y 1d)
+    if btc_data_1h is None or btc_data_1h.empty or btc_data_1d is None or btc_data_1d.empty:
+        logger.error("Error: Los datos de BTC (1h y 1d) son insuficientes o no válidos. Omitiendo análisis.")
+        return False
 
-    # Análisis Ichimoku
+    # Realizar el análisis de Ichimoku si es necesario
     ichimoku_analysis = analyze_with_ichimoku_theories(data, symbol)
     if ichimoku_analysis is None:
         logger.error(f"Error en el análisis Ichimoku para {symbol}")
         return False
 
-    # Obtener resultados del análisis Ichimoku
+    # Extraer resultados del análisis Ichimoku
     ichimoku_signal = ichimoku_analysis.get('signal')
     price_targets = ichimoku_analysis.get('price_targets')
 
     logger.info(f"Ichimoku Signal: {ichimoku_signal}")
     logger.info(f"Price Targets: {price_targets}")
 
-    # Perfil de Volumen (asegúrate de validar)
-    volume_profile = calculate_volume_profile_with_nodes(data)
+    # Calcular perfil de volumen
+    hvn_price, lvn_price, volume_profile = calculate_volume_profile_with_nodes(data)
     if volume_profile is None or volume_profile.empty:
         logger.error(f"Error: El perfil de volumen está vacío para {symbol}")
         return False
 
-    hvn_price = None
-    lvn_price = None
+    # Log de resultados para HVN y LVN
+    if hvn_price is not None and lvn_price is not None:
+        logger.info(f"Perfil de Volumen calculado para {symbol}. HVN: {hvn_price}, LVN: {lvn_price}")
+    else:
+        logger.warning(f"No se pudo calcular HVN o LVN para {symbol} debido a valores faltantes o no numéricos.")
 
-    if volume_profile['HVN'].any():
-        hvn_price = volume_profile.loc[volume_profile['HVN'], 'price_bin'].apply(lambda x: x.mid).mean()
+    # Evaluar la calidad de la entrada usando la nueva estrategia de `dr`
+    quality, decision_color = evaluate_entry_quality(data)
 
-    if volume_profile['LVN'].any():
-        lvn_price = volume_profile.loc[volume_profile['LVN'], 'price_bin'].apply(lambda x: x.mid).mean()
-
-    logger.info(f"Perfil de Volumen calculado para {symbol}")
-
-    # Filtrar señal si es necesario
-    selected_result = filter_signal(ichimoku_signal, symbol)
-    if not selected_result:
-        logger.info(f"No se encontró una señal válida para {symbol}")
+    # Filtrar y decidir si enviar la señal
+    if quality >= 7.5:
+        selected_result = (ichimoku_signal, price_targets, decision_color, "buy")
+    elif quality >= 5.0:
+        selected_result = (ichimoku_signal, price_targets, decision_color, "sell")
+    else:
+        logger.info(f"Condiciones neutrales para {symbol}, omitiendo señal.")
         return False
 
     # Obtener el sentimiento del mercado
@@ -1387,7 +1485,6 @@ def analyze_trade(symbol, data, btc_data_1h, btc_data_1d):
     # Enviar señal al dashboard
     send_signal(symbol, selected_result, sentiment)
     return True
-
 
 
 
@@ -1405,25 +1502,42 @@ def get_btc_data(interval, client):
     return calculate_btc_indicators(btc_data)
 
 
-def get_symbol_data(symbol, client):
-    logger.info(f"Obteniendo datos para {symbol}")
-    try:
-        candles = client.futures_klines(symbol=symbol, interval=KLINE_INTERVAL, limit=KLINE_LIMIT)
-        if not candles:
-            logger.error(f"Error: No se obtuvieron datos para {symbol}")
-            return pd.DataFrame()  # Devuelve un DataFrame vacío si no hay datos
-    
-        data = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time',
-                                              'quote_asset_volume', 'number_of_trades',
-                                              'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume',
-                                              'ignore'])
-        # Convertir las columnas a float
-        for col in ['close', 'high', 'low', 'volume']:
-            data[col] = data[col].astype(float)
-        return data
-    except Exception as e:
-        logger.error(f"Error obteniendo datos para {symbol}: {e}")
-        return pd.DataFrame()  # En caso de error, devuelve un DataFrame vacío
+
+def get_symbol_data(symbol, client, retries=2, delay=5):
+    """
+    Obtiene datos de velas para un símbolo dado y los convierte a DataFrame,
+    con un número reducido de reintentos para evitar duplicados de log.
+    """
+    log_single_instance(symbol, f"Obteniendo datos para {symbol}")
+    for attempt in range(retries):
+        try:
+            candles = client.futures_klines(symbol=symbol, interval=KLINE_INTERVAL, limit=KLINE_LIMIT)
+            
+            # Confirmación de datos suficientes
+            if not candles or len(candles) < KLINE_LIMIT:
+                time.sleep(delay)
+                continue
+            
+            data = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 
+                                                  'close_time', 'quote_asset_volume', 'number_of_trades',
+                                                  'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
+            
+            for col in ['close', 'high', 'low', 'volume']:
+                data[col] = pd.to_numeric(data[col], errors='coerce')
+                
+            data = data.dropna().drop_duplicates()  # Eliminar nulos y duplicados
+
+            if data.empty:
+                log_single_instance(symbol, f"Error: Datos insuficientes para {symbol}, omitiendo análisis.")
+            else:
+                return data
+
+        except Exception as e:
+            log_single_instance(symbol, f"Error al obtener datos para {symbol}: {e}")
+            time.sleep(delay)
+
+    log_single_instance(symbol, f"Error: No se pudieron obtener datos válidos para {symbol} después de {retries} intentos.")
+    return None
 
 
 
@@ -1437,51 +1551,118 @@ def select_random_symbols(client):
 
 
 
+
+def handle_null_values(data, symbol):
+    # Verificar y eliminar valores nulos
+    if data.isnull().values.any():
+        logger.error(f"Error: Existen valores nulos en los datos de {symbol}. Eliminando nulos.")
+        data = data.dropna()  # Eliminar filas con valores nulos
+        if data.empty:
+            logger.error(f"Error: Después de eliminar los nulos, los datos de {symbol} están vacíos. Saltando análisis.")
+            return None
+    
+    # Verificar y eliminar duplicados
+    if data.duplicated().any():
+        logger.info(f"Datos duplicados encontrados para {symbol}. Eliminando duplicados.")
+        data = data.drop_duplicates()  # Eliminar duplicados
+        if data.empty:
+            logger.error(f"Error: Después de eliminar duplicados, los datos de {symbol} están vacíos. Saltando análisis.")
+            return None
+    return data
+
+
+
+# Define la función `clear_cache` para limpiar el caché global
+def clear_cache():
+    """
+    Limpia el caché global de `volume_profile_cache` para evitar mensajes duplicados.
+    """
+    volume_profile_cache.clear()
+
+# Función principal de análisis con control de duplicados
 def perform_trade_analysis():
+    """
+    Función principal para el análisis de trading.
+    Realiza iteraciones de análisis de mercado, calcula perfiles de volumen,
+    y limpia el caché al finalizar cada ciclo.
+    """
     logger.info("Iniciando análisis de trading avanzado")
-    symbol_memory = set()
-
+    
     while True:
-        try:
-            # Analizar BTC y añadir el Market Cap
-            btc_data_1h = get_btc_data(KLINE_INTERVAL, client)
-            btc_data_1d = get_btc_data('1d', client)
-            btc_data_1h = analyze_btc_market_cap(btc_data_1h)
+        # Limpiar el caché al inicio de cada iteración
+        clear_cache()
+        
+        # Seleccionar aleatoriamente un conjunto de símbolos
+        symbols = select_random_symbols(client)
 
-            # Selección aleatoria de símbolos para futuros
-            symbols = select_random_symbols(client)
-
-            for symbol in symbols:
-                if symbol in symbol_memory:
-                    continue  # Evitar analizar el mismo símbolo repetidamente
-                symbol_memory.add(symbol)
-                
-                try:
-                    data = get_symbol_data(symbol, client)
-                    if data is None:
-                        logger.error(f"Error: Datos nulos obtenidos para {symbol}, omitiendo análisis.")
-                        continue
-
-                    # Analizar el símbolo aleatorio y añadir el análisis de Market Cap
-                    data = analyze_random_symbol_market_cap(symbol, data)
-
-                    if analyze_trade(symbol, data, btc_data_1h, btc_data_1d):
-                        logger.info(f"Se encontró una señal para {symbol}")
-                        time.sleep(900)
-                    else:
-                        logger.info(f"No se encontró una señal adecuada para {symbol}")
-                        time.sleep(1)
-                except Exception as e:
-                    logger.error(f"Error al analizar {symbol}: {e}")
+        for symbol in symbols:
+            try:
+                # Obtener datos de trading del símbolo
+                data = get_symbol_data(symbol, client)
+                if data is None or data.empty:
+                    log_single_instance(symbol, f"Error: Datos insuficientes para {symbol}, omitiendo análisis.")
                     continue
 
-            logger.info("Ciclo completo, esperando antes de la siguiente iteración")
-            time.sleep(60)
+                # Calcular perfil de volumen
+                try:
+                    hvn_price, lvn_price, volume_profile = calculate_volume_profile_with_nodes(data)
+                    if volume_profile is not None and isinstance(volume_profile, pd.DataFrame) and not volume_profile.empty:
+                        log_volume_profile(symbol, hvn_price, lvn_price)
+                    else:
+                        log_single_instance(symbol, f"Perfil de volumen vacío o no válido para {symbol}.")
+                except ValueError as e:
+                    log_single_instance(symbol, f"Error al calcular perfil de volumen para {symbol}: {e}")
+
+                # Registrar condiciones neutrales si es necesario
+                log_neutral_condition(symbol)
+
+            except Exception as e:
+                log_single_instance(symbol, f"Error al analizar {symbol}: {e}")
+                continue
+
+        logger.info("Ciclo completo, esperando antes de la siguiente iteración")
+        time.sleep(120)  # Tiempo de espera antes de la siguiente iteración
+
+
+# Función para obtener datos del símbolo con control de intentos y log optimizado
+def get_symbol_data(symbol, client, retries=2, delay=5):
+    """
+    Obtiene datos de velas para un símbolo dado y los convierte a DataFrame,
+    con un número reducido de reintentos para evitar duplicados de log.
+    """
+    log_single_instance(symbol, f"Obteniendo datos para {symbol}")
+    for attempt in range(retries):
+        try:
+            candles = client.futures_klines(symbol=symbol, interval=KLINE_INTERVAL, limit=KLINE_LIMIT)
+            
+            # Confirmación de datos suficientes
+            if not candles or len(candles) < KLINE_LIMIT:
+                time.sleep(delay)
+                continue
+            
+            data = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 
+                                                  'close_time', 'quote_asset_volume', 'number_of_trades',
+                                                  'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
+            
+            for col in ['close', 'high', 'low', 'volume']:
+                data[col] = pd.to_numeric(data[col], errors='coerce')
+                
+            data = data.dropna().drop_duplicates()  # Eliminar nulos y duplicados
+
+            if data.empty:
+                log_single_instance(symbol, f"Error: Datos insuficientes para {symbol}, omitiendo análisis.")
+            else:
+                return data
+
         except Exception as e:
-            logger.error(f"Error en el ciclo principal: {str(e)}")
-            time.sleep(60)
+            log_single_instance(symbol, f"Error al obtener datos para {symbol}: {e}")
+            time.sleep(delay)
+
+    log_single_instance(symbol, f"Error: No se pudieron obtener datos válidos para {symbol} después de {retries} intentos.")
+    return None
 
 
+            
 
 # -----------------------------------
 # Almacenamos las senales 

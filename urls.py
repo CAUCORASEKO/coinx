@@ -14,33 +14,10 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import path
-from django.contrib.auth import views as auth_views
-from web import views
+from django.contrib import admin
+from django.urls import path, include
 
 urlpatterns = [
-    # Home and registration
-    path('', views.index, name='index'),
-    path('register/', views.register_view, name='register'),
-    path('confirm/<str:token>/', views.confirm_email, name='confirm_email'),
-
-    # Login and logout
-    path('accounts/login/', auth_views.LoginView.as_view(template_name='web/registration/login.html'), name='login'),
-    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='index'), name='logout'),  # Logout and redirect to home
-
-    # Dashboard
-    path('dashboard/', views.dashboard_view, name='dashboard'),
-    path('get_signal/', views.get_signal, name='get_signal'),  # Cambia dashboard_view por get_signal
-
-    # Update API keys
-    path('update-api-keys/', views.update_api_keys, name='update_api_keys'),
-
-    # Password reset URLs
-    path('password-reset/', auth_views.PasswordResetView.as_view(template_name='web/password_reset.html'), name='password_reset'),
-    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='web/password_reset_done.html'), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='web/password_reset_confirm.html'), name='password_reset_confirm'),
-    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='web/password_reset_complete.html'), name='password_reset_complete'),
-
-    # Forgot Username
-    path('username-recovery/', views.username_recovery_view, name='username_recovery'),
+    path('admin/', admin.site.urls),  # URL para el panel de administración de Django
+    path('', include('web.urls')),  # Incluye las URLs de la aplicación 'web'
 ]

@@ -1,0 +1,19 @@
+<!--instruccions.html-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %} <!-- Cargar los archivos estáticos -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
+    <title>Payment Instructions</title>
+    <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+</head>
+<body>
+    <h1>Payment Instructions</h1>
+    <p>You have selected the {{ plan }} plan.</p>
+    <p>Please send your payment to the following USDT address:</p>
+    <strong>{{ address }}</strong>
+</body>
+</html>
