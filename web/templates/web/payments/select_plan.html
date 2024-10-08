@@ -1,30 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {% load static %} <!-- Cargar los archivos estáticos -->
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Payment Plan</title>
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
     <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .payment-container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>Select Your Subscription Plan</h1>
-    <form method="POST" action="{% url 'payment_subscription' %}">
-        {% csrf_token %}
-        <label>
-            <input type="radio" name="plan" value="monthly">
-            Monthly - 20 USDT
-        </label><br>
-        <label>
-            <input type="radio" name="plan" value="quarterly">
-            Quarterly - 50 USDT
-        </label><br>
-        <label>
-            <input type="radio" name="plan" value="annual">
-            Annual - 100 USDT
-        </label><br>
-        <button type="submit">Continue to Payment</button>
-    </form>
+    <div class="payment-container">
+        <h1>Select Your Subscription Plan</h1>
+        <form method="POST" action="{% url 'payment_subscription' %}">
+            {% csrf_token %}
+            <label>
+                <input type="radio" name="plan" value="monthly">
+                Monthly - 20 USDT
+            </label>
+            <label>
+                <input type="radio" name="plan" value="quarterly">
+                Quarterly - 50 USDT
+            </label>
+            <label>
+                <input type="radio" name="plan" value="annual">
+                Annual - 100 USDT
+            </label>
+            <button type="submit">Continue to Payment</button>
+        </form>
+    </div>
 </body>
 </html>
