@@ -6,61 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Payment Plan</title>
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
-    <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f4f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .payment-container {
-            background: #fff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 500px;
-            width: 100%;
-        }
-
-        h1 {
-            font-size: 24px;
-            margin-bottom: 30px;
-            color: #333;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
-
-        input[type="radio"] {
-            margin-right: 10px;
-        }
-
-        button {
-            padding: 12px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
 </head>
 <body>
-    <div class="payment-container">
+    <div class="select-plan-container">
         <h1>Select Your Subscription Plan</h1>
         <form method="POST" action="{% url 'payment_subscription' %}">
             {% csrf_token %}

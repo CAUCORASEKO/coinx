@@ -443,9 +443,22 @@ footer {
 }
 
 .instructions-container strong {
-    font-size: 1.5em;
+    display: block; /* Asegura que esté en su propia línea */
+    font-size: 1.4em; /* Ajustamos el tamaño para que sea más visible */
     color: #007bff;
+    word-break: break-all; /* Evita que se desborde */
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa; /* Fondo claro para destacar la dirección */
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Añade sombra */
+    text-align: center; /* Centra el texto */
 }
+
+.instructions-container strong:hover {
+    color: #0056b3; /* Cambia el color al pasar el ratón por encima */
+}
+
 
 /* Styles for Select Plan Page */
 .select-plan-container {
@@ -465,7 +478,8 @@ footer {
 }
 
 .select-plan-container label {
-    display: block;
+    display: flex;
+    align-items: center;
     font-size: 1.2em;
     margin: 15px 0;
     cursor: pointer;
@@ -474,6 +488,7 @@ footer {
 
 .select-plan-container input[type="radio"] {
     margin-right: 10px;
+    transform: scale(1.2); /* Suurentaa säteitä */
 }
 
 .select-plan-container button {
@@ -486,6 +501,9 @@ footer {
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin-top: 20px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .select-plan-container button:hover {

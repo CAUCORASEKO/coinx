@@ -229,9 +229,9 @@ def payment_subscription(request):
 @login_required
 def payment_instructions(request, plan):
     payment_addresses = {
-        'monthly': 'usdt_address_monthly',
-        'quarterly': 'usdt_address_quarterly',
-        'annual': 'usdt_address_annual',
+        'monthly': '0xdddc483bdfad1f34d1a18b438396626412d934ad',   # 20 USDT en BSC
+        'quarterly': '0x2ef705b356e03c924e6afa64fb0312b551437463',  # 50 USDT en BSC
+        'annual': '0xe2a035d5e4e68b2198417155ae7de9bd58012cde',     # 100 USDT en BSC
     }
 
     # Obtener la dirección de USDT según el plan seleccionado
@@ -239,4 +239,5 @@ def payment_instructions(request, plan):
 
     # Renderizar la plantilla de instrucciones de pago
     return render(request, 'web/payments/instructions.html', {'address': address, 'plan': plan})
+
 

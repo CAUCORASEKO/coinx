@@ -7,52 +7,13 @@
     <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
     <title>Payment Instructions</title>
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f9f9f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .instructions-container {
-            background: #fff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 600px;
-            width: 100%;
-        }
-
-        h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        p {
-            font-size: 16px;
-            margin-bottom: 10px;
-            color: #555;
-        }
-
-        .usdt-address {
-            font-size: 18px;
-            font-weight: bold;
-            color: #007bff;
-            margin-top: 20px;
-        }
-    </style>
 </head>
 <body>
     <div class="instructions-container">
         <h1>Payment Instructions</h1>
         <p>You have selected the {{ plan }} plan.</p>
-        <p>Please send your payment to the following USDT address:</p>
-        <p class="usdt-address">{{ address }}</p>
+        <p>Please send your payment to the following BSC address:</p>
+        <p><strong>{{ address }}</strong></p>
     </div>
 </body>
 </html>
