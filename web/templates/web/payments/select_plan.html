@@ -2,30 +2,54 @@
 <html lang="en">
 <head>
     {% load static %}
+    <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+    <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select Payment Plan</title>
-    <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- load Chart.js -->
+    <title>Dashboard</title>
 </head>
 <body>
+    {% include 'web/header.html' %}
+    
+
     <div class="select-plan-container">
-        <h1>Select Your Subscription Plan</h1>
-        <form method="POST" action="{% url 'payment_subscription' %}">
-            {% csrf_token %}
-            <label>
-                <input type="radio" name="plan" value="monthly">
-                Monthly - 20 USDT
-            </label>
-            <label>
-                <input type="radio" name="plan" value="quarterly">
-                Quarterly - 50 USDT
-            </label>
-            <label>
-                <input type="radio" name="plan" value="annual">
-                Annual - 100 USDT
-            </label>
-            <button type="submit">Continue to Payment</button>
-        </form>
+        <div class="plan-card">
+            <h2>Starter</h2>
+            <p class="price">20 USDT</p>
+            <p class="duration">/month</p>
+            <form method="POST" action="{% url 'payment_subscription' %}">
+                {% csrf_token %}
+                <input type="hidden" name="plan" value="monthly">
+                <button type="submit">Upgrade</button>
+            </form>
+        </div>
+
+        <div class="plan-card popular">
+            <h2>Advanced</h2>
+            <p class="price">50 USDT</p>
+            <p class="duration">/quarterly</p>
+            <form method="POST" action="{% url 'payment_subscription' %}">
+                {% csrf_token %}
+                <input type="hidden" name="plan" value="quarterly">
+                <button type="submit">Upgrade</button>
+            </form>
+        </div>
+
+        <div class="plan-card">
+            <h2>Premium</h2>
+            <p class="price">100 USDT</p>
+            <p class="duration">/annual</p>
+            <form method="POST" action="{% url 'payment_subscription' %}">
+                {% csrf_token %}
+                <input type="hidden" name="plan" value="annual">
+                <button type="submit">Upgrade</button>
+            </form>
+        </div>
     </div>
+
+    {% include 'web/footer.html' %}
+
 </body>
 </html>
+

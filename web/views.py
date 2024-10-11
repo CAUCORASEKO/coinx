@@ -1,5 +1,9 @@
+#views
 import logging
 import os
+from coinpayments import CoinPaymentsAPI
+from django.shortcuts import render
+from django.conf import settings
 from binance.client import Client as FuturesClient  # Cliente de Futuros
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
@@ -228,16 +232,78 @@ def payment_subscription(request):
 # Vista para mostrar las instrucciones de pago
 @login_required
 def payment_instructions(request, plan):
-    payment_addresses = {
-        'monthly': '0xdddc483bdfad1f34d1a18b438396626412d934ad',   # 20 USDT en BSC
-        'quarterly': '0x2ef705b356e03c924e6afa64fb0312b551437463',  # 50 USDT en BSC
-        'annual': '0xe2a035d5e4e68b2198417155ae7de9bd58012cde',     # 100 USDT en BSC
-    }
+    if plan == 'monthly':
+        amount = '20 USDT'
+        address = '0x376d4558b59DcF50f4275A4382806d05446dF654'
+        network = 'Ethereum (ERC-20)'
+    elif plan == 'quarterly':
+        amount = '50 USDT'
+        address = '0xD07A1a5A795E95468674D0ff886a70523FfD16c'
+        network = 'BNB Smart Chain (BSC)'
+    elif plan == 'annual':
+        amount = '100 USDT'
+        address = 'bnb1zdrqpt3zjsk68rse...'
+        network = 'BNB (Mainnet)'
 
-    # Obtener la dirección de USDT según el plan seleccionado
-    address = payment_addresses.get(plan)
+    # Corrige la referencia a la plantilla
+    return render(request, 'web/payments/instructions.html', {
+        'plan': plan,
+        'amount': amount,
+        'address': address,
+        'network': network
+    })
 
-    # Renderizar la plantilla de instrucciones de pago
-    return render(request, 'web/payments/instructions.html', {'address': address, 'plan': plan})
 
 
+@login_required
+def create_payment(request, plan):
+    # Inicializar la API con las llaves
+    api = CoinPaymentsAPI(public_key=settings.COINPAYMENTS_API_KEY, private_key=settings.COINPAYMENTS_API_SECRET)
+
+    # Definir el monto basado en el plan seleccionado
+    if plan == 'monthly':
+        amount = 20
+        memo = None
+    elif plan == 'quarterly':
+        amount = 50
+        memo = None
+    elif plan == 'annual':
+        amount = 100
+        memo = 'D85bfbfda9d654a40'  # Este es el memo específico para el plan anual
+    else:
+        messages.error(request, 'Invalid plan selected.')
+        return redirect('payment_subscription')
+
+    # Crear el pago usando la API de CoinPayments
+    try:
+        response = api.create_transaction(
+            amount=amount,
+            currency1='USDT',  # Moneda en la que se recibirá el pago
+            currency2='USDT',  # Moneda del cliente
+            buyer_email=request.user.email,
+            item_name=f'Subscription plan: {plan}',
+            custom=request.user.id  # Puedes usar esto para asociar la transacción con el usuario
+        )
+        
+        # Procesar la respuesta y mostrar la página de instrucciones de pago
+        if response['error'] == 'ok':
+            transaction_id = response['result']['txn_id']
+            address = response['result']['address']
+            amount_due = response['result']['amount']
+
+            # Redirigir a la página de instrucciones de pago
+            return render(request, 'web/payments/instructions.html', {
+                'address': address,
+                'amount': amount_due,
+                'transaction_id': transaction_id,
+                'plan': plan,
+                'memo': memo,
+                'network': 'BNB Mainnet' if plan == 'annual' else 'Ethereum (ERC-20)'
+            })
+        else:
+            messages.error(request, f"Error creating transaction: {response['error']}")
+            return redirect('payment_subscription')
+    
+    except Exception as e:
+        messages.error(request, f"Error: {str(e)}")
+        return redirect('payment_subscription')

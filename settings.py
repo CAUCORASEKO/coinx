@@ -1,3 +1,4 @@
+#setting
 import os
 import sys
 from pathlib import Path
@@ -45,7 +46,7 @@ ROOT_URLCONF = 'urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'web/templates'],  # Ruta correcta para las plantillas
+        'DIRS': [BASE_DIR / 'web/templates'],  # Correcto, permite buscar dentro de 'web/templates/'
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -57,6 +58,8 @@ TEMPLATES = [
         },
     },
 ]
+
+
 
 WSGI_APPLICATION = 'wsgi.application'
 
@@ -118,6 +121,11 @@ else:
     EMAIL_HOST_USER = 'latribubooking@gmail.com'  # Tu dirección de correo de Gmail
     EMAIL_HOST_PASSWORD = 'your_email_Password'  # Tu contraseña de Gmail
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # El correo desde el que se enviarán los emails
+    
+COINPAYMENTS_API_KEY = os.getenv('COINPAYMENTS_API_KEY', 'tu_llave_publica_aqui')
+COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET', 'tu_llave_privada_aqui')
+
+  
 
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'

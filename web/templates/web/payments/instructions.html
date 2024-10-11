@@ -9,11 +9,35 @@
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
 </head>
 <body>
+    {% include 'web/header.html' %}
+    
     <div class="instructions-container">
         <h1>Payment Instructions</h1>
-        <p>You have selected the {{ plan }} plan.</p>
-        <p>Please send your payment to the following BSC address:</p>
-        <p><strong>{{ address }}</strong></p>
+        <p>You have selected the <strong>{{ plan }}</strong> plan.</p>
+
+        <p>Please send exactly <strong>{{ amount }} USDT</strong> to the following address:</p>
+        <strong>{{ address }}</strong>
+
+        {% if memo %}
+            <p><strong>Memo MUST be set to:</strong> <span class="memo-text">{{ memo }}</span></p>
+        {% endif %}
+
+        <p>Your transaction ID is:</p>
+        <div class="highlight-text">{{ transaction_id }}</div>
+
+        <h2>Important Instructions</h2>
+        <ul class="warning-list">
+            <li>Make sure to send the exact amount of USDT.</li>
+            <li>Use the correct network: <strong>{{ network }}</strong>.</li>
+            <li>Double-check the address and transaction details before confirming.</li>
+        </ul>
+
+        <!-- Edit Label (Edit Plan) Button -->
+        <div class="edit-label-container">
+            <button class="edit-label-button" onclick="window.location.href='{% url 'payment_subscription' %}'">Edit Label</button>
+        </div>
     </div>
+
+    {% include 'web/footer.html' %}
 </body>
 </html>

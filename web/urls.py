@@ -1,3 +1,4 @@
+# urls
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from web import views
@@ -36,7 +37,9 @@ urlpatterns = [
     # Username recovery URLs
     path('username-recovery/', views.username_recovery_view, name='username_recovery'),
 
+   
     # Payment URLs
-    path('payment/', views.payment_subscription, name='payment_subscription'),  # Aquí renderizas select_plan.html
-    path('payment/instructions/<str:plan>/', views.payment_instructions, name='payment_instructions'),
+    path('payment/', views.payment_subscription, name='payment_subscription'),
+    path('payment/instructions/<str:plan>/', views.payment_instructions, name='payment_instructions'),  # Cambiar 'instructions' a 'payment_instructions'
+
 ]
