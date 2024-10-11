@@ -1,4 +1,4 @@
-#!/Users/mestizo/Desktop/inversor-main/env/bin/python3.11
+#!/Users/mestizo/Desktop/inversor-main/env/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
