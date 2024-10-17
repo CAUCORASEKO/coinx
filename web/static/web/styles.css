@@ -629,3 +629,21 @@ button {
 }
 
 
+.memo-text {
+    font-weight: bold;
+    color: #e63946;  /* Color rojo para destacar */
+    background-color: #ffe6e6; /* Fondo rojo claro */
+    padding: 10px;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+.highlight-text {
+    font-weight: bold;
+    color: #007bff;  /* Color azul */
+    background-color: #e6f4ff; /* Fondo azul claro */
+    padding: 10px;
+    border-radius: 5px;
+    display: inline-block;
+    word-break: break-all; /* Para asegurarnos de que no se rompa el texto */
+}

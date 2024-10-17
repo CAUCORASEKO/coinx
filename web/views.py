@@ -238,25 +238,30 @@ def payment_instructions(request, plan):
         amount = 20
         address = '0x376d4558b59DcF50f4275A4382806d05446dF654'
         network = 'Ethereum (ERC-20)'
+        memo = None  # No se requiere memo para este plan
     elif plan == 'quarterly':
         amount = 50
         address = '0xD07A1a5A795E95468674D0ff886a70523FfD16c'
         network = 'BNB Smart Chain (BSC)'
+        memo = None  # No se requiere memo para este plan
     elif plan == 'annual':
         amount = 100
-        address = 'bnb1zdrqpt3zjsk68rse...'
+        address = 'bnb1zdrqpt3zjs6k68rsest3xpun977uh2w9ywg5wf'
+        memo = 'D85bfbfda9d654a40'  # Este plan requiere un memo específico
         network = 'BNB (Mainnet)'
     else:
         messages.error(request, 'Invalid plan selected.')
         return redirect('payment_subscription')
 
-    # Renderizar la plantilla con las variables necesarias
+    # Renderizar la plantilla con las variables necesarias, incluyendo el memo
     return render(request, 'web/payments/instructions.html', {
         'plan': plan,
-        'amount': amount,  # Solo el número
+        'amount': amount,
         'address': address,
+        'memo': memo,  # Asegúrate de pasar el memo a la plantilla
         'network': network
     })
+
 
 
 @login_required
@@ -291,17 +296,17 @@ def create_payment(request, plan):
 
         # Procesar la respuesta y mostrar la página de instrucciones de pago
         if response['error'] == 'ok':
-            transaction_id = response['result']['txn_id']
             address = response['result']['address']
             amount_due = response['result']['amount']
+            # El memo es manual si es el plan 'annual', o nulo para otros planes
+            memo = 'D85bfbfda9d654a40' if plan == 'annual' else None
 
-            # Renderizar la página de instrucciones de pago
+            # Redirigir a la página de instrucciones de pago
             return render(request, 'web/payments/instructions.html', {
                 'address': address,
-                'amount': amount_due,  # Solo el número
-                'transaction_id': transaction_id,
+                'amount': amount_due,
+                'memo': memo,  # Asegúrate de que el memo se envía aquí
                 'plan': plan,
-                'memo': memo,
                 'network': 'BNB Mainnet' if plan == 'annual' else 'Ethereum (ERC-20)'
             })
         else:
@@ -311,4 +316,3 @@ def create_payment(request, plan):
     except Exception as e:
         messages.error(request, f"Error: {str(e)}")
         return redirect('payment_subscription')
-

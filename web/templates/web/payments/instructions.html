@@ -16,10 +16,11 @@
         <p>You have selected the <strong>{{ plan }}</strong> plan.</p>
 
         <p>Please send exactly <strong>{{ amount }} USDT</strong> to the following address:</p>
-        <strong>{{ address }}</strong>
+        <div class="highlight-text">{{ address }}</div> <!-- Aquí mostramos la dirección completa -->
 
         {% if memo %}
-            <p><strong>Memo MUST be set to:</strong> <span class="memo-text">{{ memo }}</span></p>
+            <p><strong>Memo MUST be set to:</strong></p>
+            <div class="memo-text">{{ memo }}</div> <!-- Aquí mostramos el memo -->
         {% endif %}
 
         <p>Your transaction ID is:</p>
