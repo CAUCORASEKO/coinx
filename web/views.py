@@ -219,6 +219,7 @@ def username_recovery_view(request):
 
 # Vista para seleccionar el plan de pago
 
+
 @login_required
 def payment_subscription(request):
     if request.method == 'POST':
@@ -226,33 +227,36 @@ def payment_subscription(request):
         return redirect('payment_instructions', plan=plan)
 
     # Renderizar la plantilla de selección de plan de pago
-    return render(request, 'web/payments/select_plan.html')  # Actualizado al nombre correcto de la plantilla
+    return render(request, 'web/payments/select_plan.html')
 
 
 # Vista para mostrar las instrucciones de pago
 @login_required
 def payment_instructions(request, plan):
+    # Definir el monto basado en el plan seleccionado
     if plan == 'monthly':
-        amount = '20 USDT'
+        amount = 20
         address = '0x376d4558b59DcF50f4275A4382806d05446dF654'
         network = 'Ethereum (ERC-20)'
     elif plan == 'quarterly':
-        amount = '50 USDT'
+        amount = 50
         address = '0xD07A1a5A795E95468674D0ff886a70523FfD16c'
         network = 'BNB Smart Chain (BSC)'
     elif plan == 'annual':
-        amount = '100 USDT'
+        amount = 100
         address = 'bnb1zdrqpt3zjsk68rse...'
         network = 'BNB (Mainnet)'
+    else:
+        messages.error(request, 'Invalid plan selected.')
+        return redirect('payment_subscription')
 
-    # Corrige la referencia a la plantilla
+    # Renderizar la plantilla con las variables necesarias
     return render(request, 'web/payments/instructions.html', {
         'plan': plan,
-        'amount': amount,
+        'amount': amount,  # Solo el número
         'address': address,
         'network': network
     })
-
 
 
 @login_required
@@ -269,7 +273,7 @@ def create_payment(request, plan):
         memo = None
     elif plan == 'annual':
         amount = 100
-        memo = 'D85bfbfda9d654a40'  # Este es el memo específico para el plan anual
+        memo = 'D85bfbfda9d654a40'  # Memo específico para el plan anual
     else:
         messages.error(request, 'Invalid plan selected.')
         return redirect('payment_subscription')
@@ -284,17 +288,17 @@ def create_payment(request, plan):
             item_name=f'Subscription plan: {plan}',
             custom=request.user.id  # Puedes usar esto para asociar la transacción con el usuario
         )
-        
+
         # Procesar la respuesta y mostrar la página de instrucciones de pago
         if response['error'] == 'ok':
             transaction_id = response['result']['txn_id']
             address = response['result']['address']
             amount_due = response['result']['amount']
 
-            # Redirigir a la página de instrucciones de pago
+            # Renderizar la página de instrucciones de pago
             return render(request, 'web/payments/instructions.html', {
                 'address': address,
-                'amount': amount_due,
+                'amount': amount_due,  # Solo el número
                 'transaction_id': transaction_id,
                 'plan': plan,
                 'memo': memo,
@@ -303,7 +307,8 @@ def create_payment(request, plan):
         else:
             messages.error(request, f"Error creating transaction: {response['error']}")
             return redirect('payment_subscription')
-    
+
     except Exception as e:
         messages.error(request, f"Error: {str(e)}")
         return redirect('payment_subscription')
+
