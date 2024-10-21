@@ -27,3 +27,5 @@ urllib3==2.2.2
 websockets==13.0.1
 yarl==1.9.11
 dj-database-url
+coinpayments
+
