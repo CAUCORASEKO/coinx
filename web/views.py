@@ -2,7 +2,7 @@
 import logging
 import os
 from web.models import Payment
-from coinpayments import CoinPaymentsAPI
+from web.coinpayments_api import CoinPaymentsAPI
 from django.shortcuts import render
 from django.conf import settings
 from binance.client import Client as FuturesClient  # Cliente de Futuros
