@@ -1,6 +1,7 @@
 #views
 import logging
 import os
+from web.models import Payment
 from coinpayments import CoinPaymentsAPI
 from django.shortcuts import render
 from django.conf import settings
@@ -264,21 +265,26 @@ def payment_instructions(request, plan):
 
 
 
+# views.py
+
 @login_required
 def create_payment(request, plan):
     # Inicializar la API con las llaves
     api = CoinPaymentsAPI(public_key=settings.COINPAYMENTS_API_KEY, private_key=settings.COINPAYMENTS_API_SECRET)
 
-    # Definir el monto basado en el plan seleccionado
+    # Definir el monto y otros parámetros basados en el plan seleccionado
     if plan == 'monthly':
         amount = 20
         memo = None
+        network = 'Ethereum (ERC-20)'
     elif plan == 'quarterly':
         amount = 50
         memo = None
+        network = 'BNB Smart Chain (BSC)'
     elif plan == 'annual':
         amount = 100
         memo = 'D85bfbfda9d654a40'  # Memo específico para el plan anual
+        network = 'BNB Mainnet'
     else:
         messages.error(request, 'Invalid plan selected.')
         return redirect('payment_subscription')
@@ -291,28 +297,50 @@ def create_payment(request, plan):
             currency2='USDT',  # Moneda del cliente
             buyer_email=request.user.email,
             item_name=f'Subscription plan: {plan}',
-            custom=request.user.id  # Puedes usar esto para asociar la transacción con el usuario
+            custom=str(request.user.id)  # Asegúrate de convertir el ID a string
         )
 
         # Procesar la respuesta y mostrar la página de instrucciones de pago
         if response['error'] == 'ok':
+            transaction_id = response['result']['txn_id']
             address = response['result']['address']
             amount_due = response['result']['amount']
-            # El memo es manual si es el plan 'annual', o nulo para otros planes
-            memo = 'D85bfbfda9d654a40' if plan == 'annual' else None
+
+            # Crear un registro del pago en la base de datos
+            payment = Payment.objects.create(
+                user=request.user,
+                plan=plan,
+                amount=amount_due,
+                address=address,
+                transaction_id=transaction_id,
+                memo=memo,
+                network=network,
+                status='pending'  # Estado inicial
+            )
 
             # Redirigir a la página de instrucciones de pago
             return render(request, 'web/payments/instructions.html', {
                 'address': address,
                 'amount': amount_due,
+                'transaction_id': transaction_id,
                 'memo': memo,  # Asegúrate de que el memo se envía aquí
                 'plan': plan,
-                'network': 'BNB Mainnet' if plan == 'annual' else 'Ethereum (ERC-20)'
+                'network': network
             })
         else:
             messages.error(request, f"Error creating transaction: {response['error']}")
             return redirect('payment_subscription')
 
     except Exception as e:
+        logger.error(f"Error creating transaction: {str(e)}")
         messages.error(request, f"Error: {str(e)}")
         return redirect('payment_subscription')
+    
+
+
+# User Payment status view 
+
+@login_required
+def payment_history(request):
+    payments = Payment.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'web/payments/payment_history.html', {'payments': payments})

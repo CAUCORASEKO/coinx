@@ -1,8 +1,9 @@
-#setting
+# settings.py
 import os
 import sys
 from pathlib import Path
 from cryptography.fernet import Fernet
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,8 +18,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-05zaqfi0rmq(+6xw70jpted)-6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Allow all hosts in development
-ALLOWED_HOSTS = ['*'] if DEBUG else ['tu-dominio.com']
+# Allow all hosts in development or use the Railway host in production
+ALLOWED_HOSTS = ['*'] if DEBUG else [os.getenv('RAILWAY_URL', 'example.com')]
 
 # Application definition
 INSTALLED_APPS = [
@@ -46,7 +47,7 @@ ROOT_URLCONF = 'urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'web/templates'],  # Correcto, permite buscar dentro de 'web/templates/'
+        'DIRS': [BASE_DIR / 'web/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -59,17 +60,22 @@ TEMPLATES = [
     },
 ]
 
-
-
 WSGI_APPLICATION = 'wsgi.application'
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'inversor-main' /'db.sqlite3',
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL')
+        )
+    }
 
 # Debug code to print BASE_DIR and DATABASE path
 print(f"BASE_DIR: {BASE_DIR}", file=sys.stderr)
@@ -98,7 +104,7 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Additional locations of static files
 STATICFILES_DIRS = []
@@ -113,37 +119,32 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    # Email configuration for sending real emails
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = 'latribubooking@gmail.com'  # Tu dirección de correo de Gmail
-    EMAIL_HOST_PASSWORD = 'your_email_Password'  # Tu contraseña de Gmail
-    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # El correo desde el que se enviarán los emails
-    
-COINPAYMENTS_API_KEY = os.getenv('COINPAYMENTS_API_KEY', 'tu_llave_publica_aqui')
-COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET', 'tu_llave_privada_aqui')
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-  
+# CoinPayments API Keys
+COINPAYMENTS_API_KEY = os.getenv('COINPAYMENTS_API_KEY')
+COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET')
 
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'
 
 # CSRF trusted origins (for security in production)
 if not DEBUG:
-    CSRF_TRUSTED_ORIGINS = ['https://tu-dominio.com']
+    CSRF_TRUSTED_ORIGINS = [f"https://{os.getenv('RAILWAY_URL', 'example.com')}"]
 
 # Security settings (for production)
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    
 
-# -----------------------------
-# LOGGING CONFIGURATION
-# -----------------------------
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -154,17 +155,17 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG',  # Puedes cambiar a INFO para reducir la verbosidad
+        'level': 'DEBUG',
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # Cambia a INFO si prefieres menos mensajes
+            'level': 'DEBUG',
             'propagate': True,
         },
         'web': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # Cambia según tus necesidades (INFO, ERROR, etc.)
+            'level': 'DEBUG',
             'propagate': True,
         },
     },
