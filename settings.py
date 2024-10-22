@@ -65,9 +65,10 @@ if DEBUG:
         }
     }
 else:
-    database_url = os.getenv('DATABASE_URL', 'postgresql://user:password@postgres.railway.internal:5432/railway')
     DATABASES = {
-        'default': dj_database_url.config(default=database_url)
+        'default': dj_database_url.config(
+            default='postgresql://postgres:jeyWOWoMnCtPtYXrBCrKxGWUCwUyknQA@postgres.railway.internal:5432/railway'
+        )
     }
 
 # Password validation
@@ -156,4 +157,3 @@ LOGGING = {
         },
     },
 }
-
