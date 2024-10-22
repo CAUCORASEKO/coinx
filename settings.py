@@ -65,6 +65,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'wsgi.application'
 
 # Database
+
+
+database_url = os.getenv('DATABASE_URL')
+print(f"DATABASE_URL: {database_url}", file=sys.stderr)  # Esto imprimirá el valor de la variable en los logs
+
 if DEBUG:
     DATABASES = {
         'default': {
@@ -75,13 +80,14 @@ if DEBUG:
 else:
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL')
+            default=database_url
         )
     }
 
     # Verifica si DATABASE_URL está configurado correctamente
     if not DATABASES['default']:
         raise ValueError("No DATABASE_URL environment variable set. Please set it in Railway.")
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
