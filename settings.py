@@ -15,10 +15,15 @@ ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '_OR2nOhfgLTeNiwx2IdgJXNi1zNPo1tOYx
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-05zaqfi0rmq(+6xw70jpted)-6wy*$lnp&)&4k=(6-x-no)fa0')
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# settings.py
+
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Allow all hosts in development or use the Railway host in production
-ALLOWED_HOSTS = ['*'] if DEBUG else [os.getenv('RAILWAY_URL', 'example.com')]
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = ['coinx-production.up.railway.app', os.getenv('RAILWAY_URL', 'example.com')]
+
 
 # Application definition
 INSTALLED_APPS = [
