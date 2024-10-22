@@ -90,11 +90,12 @@ STATIC_URL = '/static/'
 
 # Additional locations of static files
 STATICFILES_DIRS = [
-    BASE_DIR / 'web/static/web',  # Ajustado para coincidir con la estructura mostrada
+    BASE_DIR / 'staticfiles',  # Directorio estático en la raíz del proyecto
+    BASE_DIR / 'web/static/web',  # Directorio estático dentro de la app 'web'
 ]
 
 # Location where static files are collected for production
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = BASE_DIR / 'staticfiles_collected'
 
 # Static files storage configuration for WhiteNoise
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
