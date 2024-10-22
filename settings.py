@@ -11,19 +11,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '_OR2nOhfgLTeNiwx2IdgJXNi1zNPo1tOYxVD2kCO4pY=')
 
 # Quick-start development settings - unsuitable for production
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-05zaqfi0rmq(+6xw70jpted)-6wy*$lnp&)&4k=(6-x-no)fa0')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# settings.py
-
+# DEBUG setting - ensure it reads as a boolean
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
+# ALLOWED_HOSTS settings
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
-    ALLOWED_HOSTS = ['coinx-production.up.railway.app', os.getenv('RAILWAY_URL', 'example.com')]
-
+    ALLOWED_HOSTS = ['coinx-production.up.railway.app', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -66,7 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wsgi.application'
 
-# Database
+# Database configuration
 if DEBUG:
     DATABASES = {
         'default': {
@@ -81,9 +78,9 @@ else:
         )
     }
 
-# Debug code to print BASE_DIR and DATABASE path
+# Debug information for the console
 print(f"BASE_DIR: {BASE_DIR}", file=sys.stderr)
-print(f"DATABASE PATH: {DATABASES['default']['NAME']}", file=sys.stderr)
+print(f"DATABASE PATH: {DATABASES['default'].get('NAME', 'Not set')}", file=sys.stderr)
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -138,15 +135,16 @@ COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET')
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'
 
-# CSRF trusted origins (for security in production)
+# CSRF trusted origins
 if not DEBUG:
-    CSRF_TRUSTED_ORIGINS = [f"https://{os.getenv('RAILWAY_URL', 'example.com')}"]
+    CSRF_TRUSTED_ORIGINS = ['https://coinx-production.up.railway.app']
 
-# Security settings (for production)
+# Security settings for production
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Logging configuration
 LOGGING = {
