@@ -1,6 +1,3 @@
-# settings.py
-
-
 import os
 import sys
 from pathlib import Path
@@ -14,7 +11,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '_OR2nOhfgLTeNiwx2IdgJXNi1zNPo1tOYxVD2kCO4pY=')
 
 # Quick-start development settings - unsuitable for production
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -65,11 +61,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'wsgi.application'
 
 # Database
-
-
 database_url = os.getenv('DATABASE_URL')
-print(f"DATABASE_URL: {database_url}", file=sys.stderr)  # Esto imprimirá el valor de la variable en los logs
-
 if DEBUG:
     DATABASES = {
         'default': {
@@ -84,10 +76,8 @@ else:
         )
     }
 
-    # Verifica si DATABASE_URL está configurado correctamente
     if not DATABASES['default']:
         raise ValueError("No DATABASE_URL environment variable set. Please set it in Railway.")
-
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -114,8 +104,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 
-# Additional locations of static files
-STATICFILES_DIRS = []
+# Additional locations of static files (for local development)
+STATICFILES_DIRS = [BASE_DIR / 'web/static']
 
 # Only for production (collectstatic will collect files here)
 STATIC_ROOT = BASE_DIR / 'staticfiles'
