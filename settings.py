@@ -86,11 +86,11 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static'
+STATIC_URL = '/static/'
 
 # Additional locations of static files
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',  # Ajusta esta ruta según la estructura que mostraste
+    BASE_DIR / 'web/static/web',  # Ajustado para coincidir con la estructura mostrada
 ]
 
 # Location where static files are collected for production
