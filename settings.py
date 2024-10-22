@@ -10,16 +10,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Key for encryption (store this securely and do not regenerate it on every load)
 ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '_OR2nOhfgLTeNiwx2IdgJXNi1zNPo1tOYxVD2kCO4pY=')
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# Quick-start development settings - unsuitable for production
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-05zaqfi0rmq(+6xw70jpted)-6wy*$lnp&)&4k=(6-x-no)fa0')
 
-# Detect environment: Local or Railway
-IS_RAILWAY = 'RAILWAY_STATIC_URL' in os.environ  # Railway sets this environment variable
+# DEBUG setting - ensure it reads as a boolean
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# DEBUG setting
-DEBUG = os.getenv('DEBUG', 'True') == 'True' if not IS_RAILWAY else False
-
-# ALLOWED_HOSTS
+# ALLOWED_HOSTS settings
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
@@ -38,7 +35,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Añade Whitenoise aquí para Railway
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -67,7 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wsgi.application'
 
-# Database
+# Database configuration
 if DEBUG:
     DATABASES = {
         'default': {
@@ -82,9 +78,9 @@ else:
         )
     }
 
-# Debug code to print BASE_DIR and DATABASE path
+# Debug information for the console
 print(f"BASE_DIR: {BASE_DIR}", file=sys.stderr)
-print(f"DATABASE PATH: {DATABASES['default'].get('NAME', 'database not configured')}", file=sys.stderr)
+print(f"DATABASE PATH: {DATABASES['default'].get('NAME', 'Not set')}", file=sys.stderr)
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -108,20 +104,17 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files configuration
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 
-if DEBUG:
-    STATICFILES_DIRS = [
-        BASE_DIR / 'web/static',  # Ajusta esta ruta según la ubicación real de tus archivos estáticos en local
-    ]
-else:
-    STATIC_ROOT = BASE_DIR / 'staticfiles'
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Additional locations of static files
+STATICFILES_DIRS = []
 
-# Media files (if applicable)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Only for production (collectstatic will collect files here)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email configuration
 if DEBUG:
@@ -142,15 +135,16 @@ COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET')
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'
 
-# CSRF trusted origins (for security in production)
+# CSRF trusted origins
 if not DEBUG:
-    CSRF_TRUSTED_ORIGINS = [f"https://{os.getenv('RAILWAY_URL', 'coinx-production.up.railway.app')}"]
+    CSRF_TRUSTED_ORIGINS = ['https://coinx-production.up.railway.app']
 
-# Security settings (for production)
+# Security settings for production
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Logging configuration
 LOGGING = {
@@ -163,17 +157,17 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG' if DEBUG else 'INFO',
+        'level': 'DEBUG',
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
+            'level': 'DEBUG',
             'propagate': True,
         },
         'web': {
             'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
+            'level': 'DEBUG',
             'propagate': True,
         },
     },
