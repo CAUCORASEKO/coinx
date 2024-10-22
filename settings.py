@@ -61,7 +61,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'wsgi.application'
 
 # Database
-database_url = os.getenv('DATABASE_URL')
 if DEBUG:
     DATABASES = {
         'default': {
@@ -70,14 +69,13 @@ if DEBUG:
         }
     }
 else:
+    # For Railway, explicitly set the DATABASE_URL if not set already
+    database_url = os.getenv('DATABASE_URL', 'postgresql://postgres:jeyWOWoMnCtPtYXrBCrKxGWUCwUyknQA@postgres.railway.internal:5432/railway')
     DATABASES = {
         'default': dj_database_url.config(
             default=database_url
         )
     }
-
-    if not DATABASES['default']:
-        raise ValueError("No DATABASE_URL environment variable set. Please set it in Railway.")
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
