@@ -1,14 +1,9 @@
 import os
-import sys
 from pathlib import Path
-from cryptography.fernet import Fernet
 import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Key for encryption (store this securely and do not regenerate it on every load)
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '_OR2nOhfgLTeNiwx2IdgJXNi1zNPo1tOYxVD2kCO4pY=')
 
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -18,7 +13,6 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Allow all hosts in development or use the Railway host in production
 ALLOWED_HOSTS = ['*'] if DEBUG else [os.getenv('RAILWAY_URL', 'example.com'), 'coinx-production.up.railway.app']
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -33,6 +27,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Middleware para servir archivos estáticos en producción
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -61,7 +56,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wsgi.application'
 
-# Database
+# Database configuration
 if DEBUG:
     DATABASES = {
         'default': {
@@ -70,28 +65,17 @@ if DEBUG:
         }
     }
 else:
-    # For Railway, explicitly set the DATABASE_URL if not set already
-    database_url = os.getenv('DATABASE_URL', 'postgresql://postgres:jeyWOWoMnCtPtYXrBCrKxGWUCwUyknQA@postgres.railway.internal:5432/railway')
+    database_url = os.getenv('DATABASE_URL', 'postgresql://user:password@postgres.railway.internal:5432/railway')
     DATABASES = {
-        'default': dj_database_url.config(
-            default=database_url
-        )
+        'default': dj_database_url.config(default=database_url)
     }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 # Internationalization
@@ -103,12 +87,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 
-# Additional locations of static files (for local development)
-STATICFILES_DIRS = [BASE_DIR / 'web/static/web']
+# Additional locations of static files
+STATICFILES_DIRS = [
+    BASE_DIR / 'web/static/web',  # Ajusta esta ruta según la estructura que mostraste
+]
 
-
-# Only for production (collectstatic will collect files here)
+# Location where static files are collected for production
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Static files storage configuration for WhiteNoise
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
