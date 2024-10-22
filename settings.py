@@ -90,7 +90,7 @@ STATIC_URL = '/static/'
 
 # Additional locations of static files
 STATICFILES_DIRS = [
-    BASE_DIR / 'web/static/web',  # Ajusta esta ruta según la estructura que mostraste
+    BASE_DIR / 'web/static',  # Ajusta esta ruta según la estructura que mostraste
 ]
 
 # Location where static files are collected for production
