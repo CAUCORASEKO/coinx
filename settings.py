@@ -17,7 +17,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Allow all hosts in development or use the Railway host in production
-ALLOWED_HOSTS = ['*'] if DEBUG else [os.getenv('RAILWAY_URL', 'example.com')]
+ALLOWED_HOSTS = ['*'] if DEBUG else [os.getenv('RAILWAY_URL', 'example.com'), 'coinx-production.up.railway.app']
+
 
 # Application definition
 INSTALLED_APPS = [
