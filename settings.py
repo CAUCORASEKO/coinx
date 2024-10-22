@@ -104,7 +104,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Additional locations of static files (for local development)
-STATICFILES_DIRS = [BASE_DIR / 'web/static']
+STATICFILES_DIRS = [BASE_DIR / 'web/static/web']
+
 
 # Only for production (collectstatic will collect files here)
 STATIC_ROOT = BASE_DIR / 'staticfiles'
