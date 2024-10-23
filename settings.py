@@ -123,8 +123,9 @@ else:
     try:
         # Verify that the encryption key is valid
         Fernet(ENCRYPTION_KEY)
-    except ValueError:
-        raise ValueError("Invalid encryption key. Please check the 'ENCRYPTION_KEY' value.")
+    except Exception as e:
+        print(f"ERROR: Invalid encryption key: {e}", file=sys.stderr)
+        ENCRYPTION_KEY = None  # Set to None to handle it gracefully later if needed
 
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'
