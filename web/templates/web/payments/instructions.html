@@ -16,11 +16,11 @@
         <p>You have selected the <strong>{{ plan }}</strong> plan.</p>
 
         <p>Please send exactly <strong>{{ amount }} USDT</strong> to the following address:</p>
-        <div class="highlight-text">{{ address }}</div> <!-- Aquí mostramos la dirección completa -->
+        <div class="highlight-text">{{ address }}</div> <!-- Tässä näytämme koko osoitteen -->
 
         {% if memo %}
             <p><strong>Memo MUST be set to:</strong></p>
-            <div class="memo-text">{{ memo }}</div> <!-- Aquí mostramos el memo -->
+            <div class="memo-text">{{ memo }}</div> <!-- Tässä näytämme muistiinpanon -->
         {% endif %}
 
         <p>Your transaction ID is:</p>
@@ -33,7 +33,7 @@
             <li>Double-check the address and transaction details before confirming.</li>
         </ul>
 
-        <!-- Edit Label (Edit Plan) Button -->
+        <!-- Muokkaa etikettiä (muokkaa suunnitelmaa) -painike -->
         <div class="edit-label-container">
             <button class="edit-label-button" onclick="window.location.href='{% url 'payment_subscription' %}'">Edit Label</button>
         </div>
