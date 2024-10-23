@@ -113,6 +113,19 @@ else:
 COINPAYMENTS_API_KEY = os.getenv('COINPAYMENTS_API_KEY')
 COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET')
 
+# Encryption key
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+
+# Check if the encryption key is set and valid
+if not ENCRYPTION_KEY:
+    print("WARNING: No encryption key found. Set the 'ENCRYPTION_KEY' environment variable.", file=sys.stderr)
+else:
+    try:
+        # Verify that the encryption key is valid
+        Fernet(ENCRYPTION_KEY)
+    except ValueError:
+        raise ValueError("Invalid encryption key. Please check the 'ENCRYPTION_KEY' value.")
+
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'
 
