@@ -2,28 +2,32 @@
 <html lang="en">
 <head>
     {% load static %}
+    <!-- CSS-tiedoston lataaminen Font Awesome -ikoneille -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Favicon-kuvake verkkosivulle -->
     <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
+    <!-- Päätyylitiedoston lataaminen -->
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
 </head>
 <body>
-    {% include 'web/header.html' %}
+    {% include 'web/header.html' %} <!-- Header-osan sisällyttäminen -->
 
     <main class="login-container">
         <h2>Login</h2>
+        <!-- Lomake käyttäjän kirjautumista varten -->
         <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="button primary">Login</button>
+            {{ form.as_p }} <!-- Lomakeelementtien näyttäminen Django-formista -->
+            <button type="submit" class="button primary">Login</button> <!-- Kirjautumispainike -->
         </form>
-        <p>Don't have an account? <a href="{% url 'register' %}" class="register-link">Register here</a></p>
-        <p><a href="{% url 'password_reset' %}" class="forgot-link">Forgot your password?</a></p>
-        <p><a href="{% url 'username_recovery' %}" class="forgot-link">Forgot your username?</a></p>
+        <p>Don't have an account? <a href="{% url 'register' %}" class="register-link">Register here</a></p> <!-- Linkki rekisteröitymiseen -->
+        <p><a href="{% url 'password_reset' %}" class="forgot-link">Forgot your password?</a></p> <!-- Linkki salasanan palauttamiseen -->
+        <p><a href="{% url 'username_recovery' %}" class="forgot-link">Forgot your username?</a></p> <!-- Linkki käyttäjänimen palauttamiseen -->
     </main>
 
-    {% include 'web/footer.html' %}
+    {% include 'web/footer.html' %} <!-- Footer-osan sisällyttäminen -->
 </body>
 </html>
