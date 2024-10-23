@@ -114,19 +114,19 @@ COINPAYMENTS_API_KEY = os.getenv('COINPAYMENTS_API_KEY')
 COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET')
 
 # Encryption key
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'default-key-that-should-be-overwritten')
 
-# Check if the encryption key is set and valid
-if not ENCRYPTION_KEY:
-    print("WARNING: No encryption key found. Set the 'ENCRYPTION_KEY' environment variable.", file=sys.stderr)
-else:
-    try:
-        # Convertir la clave a bytes y validar con Fernet
-        fernet_key = ENCRYPTION_KEY.encode()
-        Fernet(fernet_key)
-    except Exception as e:
-        print(f"ERROR: Invalid encryption key: {e}", file=sys.stderr)
-        ENCRYPTION_KEY = None  # Dejar ENCRYPTION_KEY como None si es inválida
+# Forzar la clave de cifrado si no está configurada en Railway
+if ENCRYPTION_KEY == 'default-key-that-should-be-overwritten':
+    print("WARNING: 'ENCRYPTION_KEY' is not set in the environment variables. Using a fallback key.", file=sys.stderr)
+    ENCRYPTION_KEY = 'your-hardcoded-backup-key'  # Pon aquí una clave de prueba segura
+
+try:
+    fernet_key = ENCRYPTION_KEY.encode()
+    Fernet(fernet_key)
+except Exception as e:
+    print(f"ERROR: Invalid encryption key: {e}", file=sys.stderr)
+    ENCRYPTION_KEY = None  # Dejar ENCRYPTION_KEY como None si es inválida
 
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'
