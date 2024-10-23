@@ -102,16 +102,25 @@ def send_confirmation_email(user):
     user_profile = UserProfile.objects.get(user=user)
     token = user_profile.email_confirmation_token
     confirmation_url = reverse('confirm_email', args=[token])
-    full_confirmation_url = f'http://localhost:8000{confirmation_url}'  # Cambiar a la URL de producción
+
+    # Cambia la URL según tu entorno
+    if settings.DEBUG:
+        full_confirmation_url = f'http://localhost:8000{confirmation_url}'
+    else:
+        full_confirmation_url = f'https://coinx-production.up.railway.app{confirmation_url}'
 
     # Enviar el email
-    send_mail(
-        'Confirm your registration',
-        f'Click the link to confirm your email: {full_confirmation_url}',
-        settings.EMAIL_HOST_USER,
-        [user.email],
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            'Confirm your registration',
+            f'Click the link to confirm your email: {full_confirmation_url}',
+            settings.EMAIL_HOST_USER,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"Error sending confirmation email: {e}")
+
 
 # Vista para confirmar el email
 def confirm_email(request, token):
