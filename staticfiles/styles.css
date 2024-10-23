@@ -1,4 +1,4 @@
-/* General styles */
+/* Yleiset tyylit */
 body {
     font-family: 'Arial', sans-serif;
     background-color: #f4f6f9;
@@ -7,7 +7,7 @@ body {
     padding: 0;
 }
 
-/* Variables CSS */
+/* CSS-muuttujat */
 :root {
     --primary-color: #007bff;
     --primary-hover-color: #0056b3;
@@ -17,7 +17,7 @@ body {
     --danger-background: #ffe6e6;
 }
 
-/* Header */
+/* Ylätunniste */
 header {
     background-color: #fff;
     box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
@@ -57,7 +57,7 @@ header nav .container {
 
 .nav-buttons .button:hover {
     background-color: var(--primary-hover-color);
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2); /* Añade más profundidad */
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2); /* Lisää syvyyttä */
 }
 
 .nav-buttons .button.small {
@@ -68,7 +68,7 @@ header nav .container {
     background-color: var(--primary-color);
 }
 
-/* Responsive header styles */
+/* Responsiiviset tyylit ylätunnisteelle */
 @media (max-width: 768px) {
     header nav .container {
         flex-direction: column;
@@ -82,7 +82,7 @@ header nav .container {
     }
 }
 
-/* Main Container */
+/* Pääkonteineri */
 .main-container {
     display: flex;
     justify-content: space-between;
@@ -90,7 +90,7 @@ header nav .container {
     padding: 50px;
     background-color: #f4f6f9;
     max-width: 1200px;
-    margin: 0 auto; /* Centrar el contenedor en pantallas grandes */
+    margin: 0 auto; /* Keskittää kontin suuremmilla näytöillä */
 }
 
 .text-content {
@@ -134,7 +134,7 @@ header nav .container {
     height: auto;
 }
 
-/* Footer */
+/* Alatunniste */
 footer {
     background-color: #f8f9fa;
     padding: 40px 20px;
@@ -212,7 +212,7 @@ footer {
     }
 }
 
-/* Login Container */
+/* Kirjautumiskonteineri */
 .login-container {
     max-width: 400px;
     margin: 80px auto;
