@@ -275,7 +275,7 @@ footer {
     text-decoration: underline;
 }
 
-/* Register Container */
+/* Rekisteröintilomake */
 .register-container {
     max-width: 400px;
     margin: 50px auto;
@@ -346,7 +346,7 @@ footer {
     border-radius: 5px;
 }
 
-/* Reset Password Container */
+/* Salasanan palautuskontti */
 .reset-password-container {
     max-width: 400px;
     margin: 50px auto;
@@ -356,7 +356,7 @@ footer {
     box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Widgets Container */
+/* Widget-kontti */
 .dashboard-container {
     width: 100%;
     max-width: 1200px;
@@ -364,7 +364,7 @@ footer {
     padding: 20px;
 }
 
-/* Grid for widgets */
+/* Widget-ruudukko */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -385,13 +385,13 @@ footer {
     margin-bottom: 15px;
 }
 
-/* Pie Chart */
+/* Piirakkakaavio */
 #balance-chart {
     height: 200px; 
     margin-bottom: 15px;
 }
 
-/* Coin Table */
+/* Kolikkotaulukko */
 .coin-table {
     width: 100%;
     border-collapse: collapse;
@@ -432,20 +432,20 @@ footer {
     background-color: #ff1a1a;
 }
 
-/* Contenedor general de la selección de planes */
+/* Suunnitelmien valintakontti */
 .select-plan-container {
-    max-width: 1000px; /* Ancho máximo del contenedor */
-    margin: 50px auto; /* Centra el contenedor */
-    padding: 30px; /* Añade espacio interno */
-    background-color: #fff; /* Fondo blanco */
-    border-radius: 10px; /* Bordes redondeados */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra suave */
-    text-align: center; /* Alinea el texto al centro */
+    max-width: 1000px; /* Kontin maksimi leveys */
+    margin: 50px auto; /* Keskittää kontin */
+    padding: 30px; /* Lisää sisätilaa */
+    background-color: #fff; /* Valkoinen tausta */
+    border-radius: 10px; /* Pyöristetyt kulmat */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Hieno varjo */
+    text-align: center; /* Keskittää tekstin */
     display: flex;
-    justify-content: space-around; /* Espacio uniforme entre los planes */
+    justify-content: space-around; /* Tasainen tila suunnitelmien välillä */
 }
 
-/* Estilos para las tarjetas de planes */
+/* Tyylit suunnitelmakorteille */
 .plan-card {
     background-color: #f8f9fa;
     border-radius: 15px;
@@ -488,13 +488,13 @@ footer {
     background-color: var(--primary-hover-color);
 }
 
-/* Destaca la tarjeta más popular */
+/* Korostaa suosituimman kortin */
 .plan-card.popular {
     position: relative;
 }
 
 .plan-card.popular::after {
-    content: "POPULAR";
+    content: "SUOSITTU";
     position: absolute;
     top: 10px;
     right: -10px;
@@ -506,7 +506,7 @@ footer {
     transform: rotate(20deg);
 }
 
-/* Estilos generales */
+/* Yleiset tyylit */
 body {
     font-family: 'Arial', sans-serif;
     background-color: #f4f6f9;
@@ -517,133 +517,23 @@ button {
     cursor: pointer;
 }
 
-/* Contenedor general de las instrucciones */
+/* Ohjeiden yleiskontti */
 .instructions-container {
-    max-width: 600px; /* Limita el ancho máximo a 600px para una mejor legibilidad en pantallas grandes */
-    margin: 50px auto; /* Aplica márgenes automáticos para centrar el contenedor vertical y horizontalmente */
-    padding: 30px; /* Añade espacio interno alrededor del contenido */
-    background-color: #fff; /* Fondo blanco para el contenedor */
-    border-radius: 15px; /* Bordes redondeados para un aspecto más moderno */
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Añade una sombra suave para dar profundidad */
-    text-align: center; /* Alinea el texto al centro */
+    max-width: 600px; /* Rajoittaa maksimi leveyttä 600px:iin suuremmille näytöille */
+    margin: 50px auto; /* Keskittää kontin automaattisesti */
+    padding: 30px; /* Lisää sisätilaa */
+    background-color: #fff; /* Valkoinen tausta */
+    border-radius: 15px; /* Pyöristetyt kulmat */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Lisää hienon varjon */
+    text-align: center; /* Keskittää tekstin */
 }
 
-/* Estilo para el memo */
+/* Muistilapun tyyli */
 .memo-text {
     font-weight: bold;
-    color: var(--danger-color); /* Color rojo para destacar el memo */
-    background-color: var(--danger-background); /* Fondo suave para resaltarlo */
+    color: var(--danger-color); /* Punainen väri muistilapulle */
+    background-color: var(--danger-background); /* Pehmeä tausta */
     padding: 10px;
     border-radius: 5px;
     display: inline-block;
-}
-
-/* Estilo para el título principal (H1) */
-.instructions-container h1 {
-    font-size: 2.5em; /* Tamaño grande para el título principal */
-    margin-bottom: 20px; /* Espacio inferior para separarlo de otros elementos */
-    color: #333; /* Color de texto oscuro para el título */
-}
-
-/* Estilos generales para los párrafos (P) dentro del contenedor */
-.instructions-container p {
-    font-size: 1.2em; /* Tamaño de fuente moderado para legibilidad */
-    color: #555; /* Color gris suave para el texto */
-    margin-bottom: 20px; /* Añade espacio inferior entre los párrafos */
-}
-
-/* Estilo para los textos importantes en negrita (strong) */
-.instructions-container strong {
-    display: block; /* Muestra el elemento como bloque (ancho completo) */
-    font-size: 1.4em; /* Tamaño de fuente más grande para resaltarlo */
-    color: var(--primary-color); /* Color azul para destacar los textos importantes */
-    word-break: break-all; /* Permite cortar palabras largas si exceden el contenedor */
-    margin-top: 10px; /* Añade margen superior */
-    padding: 12px; /* Añade espacio alrededor del texto */
-    background-color: #f1f7ff; /* Fondo azul claro para resaltar */
-    border-radius: 8px; /* Bordes redondeados */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra suave para darle relieve */
-    border: 1px solid var(--primary-color); /* Borde azul alrededor para resaltar */
-    text-align: center; /* Alinea el texto al centro */
-}
-
-/* Estilo para los textos importantes cuando el usuario pasa el ratón */
-.instructions-container strong:hover {
-    color: var(--primary-hover-color); /* Cambia el color cuando se pasa el ratón por encima */
-}
-
-/* Estilo para los subtítulos importantes (H2) */
-.instructions-container h2 {
-    font-size: 1.8em; /* Tamaño de fuente grande */
-    margin-top: 30px; /* Margen superior grande para separarlo del contenido anterior */
-    margin-bottom: 10px; /* Margen inferior más pequeño */
-    color: var(--danger-color); /* Rojo para indicar instrucciones importantes o advertencias */
-}
-
-/* Lista de advertencias o instrucciones importantes */
-.warning-list {
-    text-align: left; /* Alinea la lista a la izquierda */
-    list-style-type: disc; /* Estilo de lista con viñetas */
-    padding-left: 25px; /* Añade espacio a la izquierda para las viñetas */
-    color: #333; /* Color oscuro para el texto de las advertencias */
-}
-
-/* Elementos individuales de la lista de advertencias */
-.warning-list li {
-    margin-bottom: 15px; /* Espacio inferior para separar los elementos de la lista */
-    font-size: 1.1em; /* Tamaño de fuente ligeramente más grande para legibilidad */
-    line-height: 1.5; /* Mejora la legibilidad */
-}
-
-/* Texto resaltado, por ejemplo, el ID de la transacción */
-.highlight-text {
-    background-color: #e8f4fa; /* Fondo azul claro */
-    border-left: 5px solid var(--primary-color); /* Borde a la izquierda para destacarlo */
-    padding: 12px; /* Espacio interno */
-    margin-top: 20px; /* Margen superior */
-    margin-bottom: 30px; /* Margen inferior */
-    font-size: 1.2em; /* Tamaño de fuente moderado */
-    text-align: center; /* Centra el texto */
-    font-weight: bold; /* Resalta el texto con negrita */
-}
-
-/* Botón para editar la etiqueta (plan) */
-.edit-label-container {
-    text-align: center;
-    margin-top: 30px;
-}
-
-.edit-label-button {
-    background-color: var(--secondary-color);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    border: none;
-    font-size: 1.2em;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.edit-label-button:hover {
-    background-color: var(--secondary-hover-color);
-}
-
-
-.memo-text {
-    font-weight: bold;
-    color: #e63946;  /* Color rojo para destacar */
-    background-color: #ffe6e6; /* Fondo rojo claro */
-    padding: 10px;
-    border-radius: 5px;
-    display: inline-block;
-}
-
-.highlight-text {
-    font-weight: bold;
-    color: #007bff;  /* Color azul */
-    background-color: #e6f4ff; /* Fondo azul claro */
-    padding: 10px;
-    border-radius: 5px;
-    display: inline-block;
-    word-break: break-all; /* Para asegurarnos de que no se rompa el texto */
 }
