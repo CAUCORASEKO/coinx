@@ -1,22 +1,22 @@
-from binance.client import Client as FuturesClient  # Cliente de Futuros
+from binance.client import Client as FuturesClient  # Futuuri-asiakas
 import logging
 
-# Config Binance API KEYs  
+# Määritä Binance API -avaimet
 API_KEY = "Your API_KEY"
 API_SECRET = "Your API_SECRET"
 
-# Configuración del logger
+# Lokin konfigurointi
 logger = logging.getLogger(__name__)
 
 def get_global_client():
     """
-    Retorna un cliente de Binance configurado con claves fijas.
+    Palauttaa Binance-asiakkaan, joka on konfiguroitu kiinteillä avaimilla.
     """
     try:
-        # Inicializar el cliente de Binance con las credenciales globales
-        client = FuturesClient(API_KEY, API_SECRET)  # Cliente de Futuros
-        client.futures_ping()  # Prueba de conexión al servidor de futuros
+        # Alustaa Binance-asiakkaan yleisillä tunnuksilla
+        client = FuturesClient(API_KEY, API_SECRET)  # Futuuri-asiakas
+        client.futures_ping()  # Testaa yhteys futuuripalvelimeen
         return client
     except Exception as e:
-        logger.error(f"Error al inicializar el cliente global de Binance: {e}")
+        logger.error(f"Error initializing Binance global client: {e}")
         return None
