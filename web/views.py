@@ -32,7 +32,7 @@ def index(request):
 # Vistas de autenticación y registro de usuarios
 # -------------------------------------------
 
-# Vista de registro de usuarios
+
 def register_view(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -42,10 +42,35 @@ def register_view(request):
             user.is_active = False
             user.save()
 
-            # Encriptar y almacenar las claves API
-            fernet = Fernet(settings.ENCRYPTION_KEY)
-            api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode())
-            api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode())
+            # Validar que la clave de cifrado esté configurada correctamente
+            if not settings.ENCRYPTION_KEY:
+                if settings.DEBUG:
+                    # Si estamos en modo de desarrollo (localhost), usar una clave de prueba
+                    test_key = Fernet.generate_key()
+                    fernet = Fernet(test_key)
+                    print("Using a test encryption key for localhost. This should not be used in production.")
+                else:
+                    # En producción, lanzar un error si no está configurada la clave
+                    messages.error(request, 'Encryption key is not set. Please contact support.')
+                    return redirect('register')
+            else:
+                try:
+                    # Convertir la clave a bytes y crear el objeto Fernet
+                    fernet = Fernet(settings.ENCRYPTION_KEY.encode())
+                except Exception as e:
+                    logger.error(f"Encryption error: {e}")
+                    messages.error(request, 'Invalid encryption key configuration. Please contact support.')
+                    return redirect('register')
+
+            try:
+                # Encriptar y almacenar las claves API
+                api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode())
+                api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode())
+            except Exception as e:
+                # Manejar cualquier error relacionado con el cifrado de datos
+                logger.error(f"Encryption error: {e}")
+                messages.error(request, 'An error occurred while encrypting your API keys. Please try again later.')
+                return redirect('register')
 
             # Guardar perfil del usuario incluyendo otros datos del formulario
             UserProfile.objects.create(
@@ -55,7 +80,7 @@ def register_view(request):
                 country=form.cleaned_data['country'],
                 city=form.cleaned_data['city'],
                 postal_code=form.cleaned_data['postal_code'],
-                phone_number=form.cleaned_data['phone_number'],  # Campo opcional
+                phone_number=form.cleaned_data.get('phone_number', ''),  # Campo opcional
                 platform=form.cleaned_data['platform'],
                 api_key_encrypted=api_key_encrypted,
                 api_secret_encrypted=api_secret_encrypted,
@@ -70,6 +95,7 @@ def register_view(request):
         form = RegistrationForm()
 
     return render(request, 'web/register.html', {'form': form})
+
 
 # Función para enviar email de confirmación
 def send_confirmation_email(user):
