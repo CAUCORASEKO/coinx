@@ -1,26 +1,17 @@
 import os
 import sys
 from pathlib import Path
-from cryptography.fernet import Fernet
 import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Key for encryption (store this securely and do not regenerate it on every load)
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '_OR2nOhfgLTeNiwx2IdgJXNi1zNPo1tOYxVD2kCO4pY=')
-
-# Quick-start development settings - unsuitable for production
+# Secret key and debug settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-05zaqfi0rmq(+6xw70jpted)-6wy*$lnp&)&4k=(6-x-no)fa0')
-
-# DEBUG setting - ensure it reads as a boolean
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# ALLOWED_HOSTS settings
-if DEBUG:
-    ALLOWED_HOSTS = ['*']
-else:
-    ALLOWED_HOSTS = ['coinx-production.up.railway.app', 'localhost', '127.0.0.1']
+# Allowed hosts settings
+ALLOWED_HOSTS = ['*'] if DEBUG else ['coinx-production.up.railway.app', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -30,11 +21,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'web',  # The app
+    'web',  # Custom app
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Whitenoise middleware for serving static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -64,19 +56,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'wsgi.application'
 
 # Database configuration
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3' if DEBUG else 'django.db.backends.postgresql',
+        'NAME': str(BASE_DIR / 'db.sqlite3') if DEBUG else '',
+        **(dj_database_url.config(default=os.getenv('DATABASE_URL')) if not DEBUG else {}),
     }
-else:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL')
-        )
-    }
+}
 
 # Debug information for the console
 print(f"BASE_DIR: {BASE_DIR}", file=sys.stderr)
@@ -84,18 +70,10 @@ print(f"DATABASE PATH: {DATABASES['default'].get('NAME', 'Not set')}", file=sys.
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 # Internationalization
@@ -106,12 +84,14 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Static files storage configuration for production
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Additional locations of static files
-STATICFILES_DIRS = []
-
-# Only for production (collectstatic will collect files here)
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'web/static']
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
