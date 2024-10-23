@@ -121,11 +121,13 @@ if not ENCRYPTION_KEY:
     print("WARNING: No encryption key found. Set the 'ENCRYPTION_KEY' environment variable.", file=sys.stderr)
 else:
     try:
-        # Verify that the encryption key is valid
-        Fernet(ENCRYPTION_KEY)
+        # Decodifica la clave y verifica que sea válida
+        decoded_key = ENCRYPTION_KEY.encode()  # Asegúrate de que esté en bytes
+        Fernet(decoded_key)  # Esto validará la clave
     except Exception as e:
         print(f"ERROR: Invalid encryption key: {e}", file=sys.stderr)
         ENCRYPTION_KEY = None  # Set to None to handle it gracefully later if needed
+
 
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'
