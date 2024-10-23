@@ -92,15 +92,10 @@ if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Additional locations of static files
-STATICFILES_DIRS = [BASE_DIR / 'web/static'] if (BASE_DIR / 'web/static').exists() else []
+STATICFILES_DIRS = [BASE_DIR / 'web/static']
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Encryption key for Fernet
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
-if not ENCRYPTION_KEY:
-    raise ValueError("No encryption key found. Set the 'ENCRYPTION_KEY' environment variable.")
 
 # Email configuration
 if DEBUG:
