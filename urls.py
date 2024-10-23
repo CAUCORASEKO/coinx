@@ -19,7 +19,7 @@ from django.urls import path, include
 from web import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),  # URL para el panel de administración de Django
-    path('', include('web.urls')),  # Incluye las URLs de la aplicación 'web'
+    path('admin/', admin.site.urls),  # URL Admin panel Django
+    path('', include('web.urls')),  # Incluye URLs 'web' App
     path('payment/create/<str:plan>/', views.create_payment, name='create_payment'),
 ]

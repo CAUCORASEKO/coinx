@@ -92,7 +92,7 @@ if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Additional locations of static files
-STATICFILES_DIRS = [BASE_DIR / 'web/static']
+STATICFILES_DIRS = [BASE_DIR / 'web/static'] if (BASE_DIR / 'web/static').exists() else []
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -121,13 +121,12 @@ if not ENCRYPTION_KEY:
     print("WARNING: No encryption key found. Set the 'ENCRYPTION_KEY' environment variable.", file=sys.stderr)
 else:
     try:
-        # Decodifica la clave y verifica que sea válida
-        decoded_key = ENCRYPTION_KEY.encode()  # Asegúrate de que esté en bytes
-        Fernet(decoded_key)  # Esto validará la clave
+        # Convertir la clave a bytes y validar con Fernet
+        fernet_key = ENCRYPTION_KEY.encode()
+        Fernet(fernet_key)
     except Exception as e:
         print(f"ERROR: Invalid encryption key: {e}", file=sys.stderr)
-        ENCRYPTION_KEY = None  # Set to None to handle it gracefully later if needed
-
+        ENCRYPTION_KEY = None  # Dejar ENCRYPTION_KEY como None si es inválida
 
 # Login redirect URL
 LOGIN_REDIRECT_URL = '/dashboard/'
