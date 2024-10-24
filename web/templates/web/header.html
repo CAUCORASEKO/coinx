@@ -13,16 +13,19 @@
     <header>
         <nav>
             <div class="container">
+                <!-- Logosektio: Näyttää yrityksen logon -->
                 <div class="logo-container">
                     <img src="{% static 'web/images/logo.png' %}" alt="Logo" class="logo-img">
                 </div>
                 <div class="nav-buttons">
                     {% if user.is_authenticated %}
+                        <!-- Jos käyttäjä on kirjautunut sisään, näytetään kirjautumispainike -->
                         <form method="post" action="{% url 'logout' %}">
                             {% csrf_token %}
                             <button type="submit" class="button small">Logout</button>
                         </form>
                     {% else %}
+                        <!-- Jos käyttäjä ei ole kirjautunut sisään, näytetään kirjautumis- ja rekisteröitymispainikkeet -->
                         <a href="{% url 'login' %}" class="button small">Login</a>
                         <a href="{% url 'register' %}" class="button primary">Start Trial</a>
                     {% endif %}
