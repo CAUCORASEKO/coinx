@@ -18,13 +18,18 @@ Features
 
 The platform offers a comprehensive set of features for cryptocurrency trading:
 
-    User Registration and Authentication: Secure account creation, login, logout, and email verification processes.
-    API Key Management: Users can update their API keys for integrated trading platforms like Binance.
-    Automated Trading Bots: Includes support for various bots like Signal Bots, DCA Bots, TradingView Bots, and Grid Bots.
-    Portfolio Tracking: Real-time tracking of spot and futures accounts, including balance and transaction history.
-    Payment Integration: Payment subscription plans with integration to CoinPayments API for USDT payments.
-    Password and Username Recovery: Built-in system for password resets and username recovery.
-    Admin Features: Management of signals, user groups, notifications, and anti-leak measures for secure operations.
+User Registration and Authentication: Secure account creation, login, logout, and email verification processes.
+
+API Key Management: Users can update their API keys for integrated trading platforms like Binance.
+
+Automated Trading Bots: Includes support for various bots like Signal Bots, DCA Bots, TradingView Bots, and Grid Bots.
+
+Portfolio Tracking: Real-time tracking of spot and futures accounts, including balance and transaction history.
+
+Payment Integration: Payment subscription plans with integration to CoinPayments API for USDT payments.
+
+Password and Username Recovery: Built-in system for password resets and username recovery.
+Admin Features: Management of signals, user groups, notifications, and anti-leak measures for secure operations.
 
 Technologies Used
 
@@ -40,6 +45,8 @@ Installation
 To set up the project locally, follow these steps:
 
     Clone the Repository:
-    ```git clone https://github.com/your-username/inversor.git cd inversor```
+
+    git clone https://github.com/your-username/inversor.git 
+    cd inversor
 
 
