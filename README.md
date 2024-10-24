@@ -55,4 +55,24 @@ To set up the project locally, follow these steps:
     python3 -m venv venv
     source venv/bin/activate  # On Windows use 'venv\Scripts\activate'
 
+**3.- Install the Dependencies**:
+    
+    pip install -r requirements.txt
+
+
+## Configuration
+## Environment Variables
+
+**Make sure to configure environment variables for secure setup. Create a .env file in the root of the project and add the following**:
+
+    SECRET_KEY=your_secret_key
+    DEBUG=True
+    DATABASE_URL=your_postgresql_database_url  # For production
+    EMAIL_HOST_USER=your_email
+    EMAIL_HOST_PASSWORD=your_email_password
+    COINPAYMENTS_API_KEY=your_coinpayments_public_key
+    COINPAYMENTS_API_SECRET=your_coinpayments_private_key
+    ENCRYPTION_KEY=your_fernet_encryption_key
+
+
 
