@@ -1,37 +1,38 @@
-from binance.client import Client  # Cliente para Spot y Futures
+# utils.py
+from binance.client import Client  # Asiakas Spot- ja Futures-kauppaa varten
 from binance.exceptions import BinanceAPIException
 import logging
 
-# Configurar el logging
+# Asetetaan lokitus
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class APIs:
     @classmethod
     def get_spot_client_instance(cls, api_key, api_secret):
-        """Devuelve una instancia del cliente Spot"""
+        """Palauttaa Spot-asiakkaan instanssin"""
         try:
-            return Client(api_key, api_secret)  # Cliente de Spot
+            return Client(api_key, api_secret)  # Spot-asiakas
         except BinanceAPIException as e:
-            logger.error(f"Error al conectar con Binance Spot: {e}")
-            raise ValueError(f"Error al conectar con Binance Spot: {e}")
+            logger.error(f"Virhe yhteydessä Binance Spotiin: {e}")
+            raise ValueError(f"Virhe yhteydessä Binance Spotiin: {e}")
 
     @classmethod
     def get_futures_client_instance(cls, api_key, api_secret):
-        """Devuelve una instancia del cliente Futures"""
+        """Palauttaa Futures-asiakkaan instanssin"""
         try:
-            return Client(api_key, api_secret)  # Cliente de Futures también es manejado por Client
+            return Client(api_key, api_secret)  # Futures-asiakas myös hoidettu Client-luokassa
         except BinanceAPIException as e:
-            logger.error(f"Error al conectar con Binance Futures: {e}")
-            raise ValueError(f"Error al conectar con Binance Futures: {e}")
+            logger.error(f"Virhe yhteydessä Binance Futuresiin: {e}")
+            raise ValueError(f"Virhe yhteydessä Binance Futuresiin: {e}")
 
     @classmethod
     def get_spot_balance(cls, spot_client):
-        """Obtiene el balance total de Spot"""
+        """Hakee Spot-tilin kokonaisaldon"""
         account_info = spot_client.get_account()
         total_spot_balance = 0.0
 
-        # Sumar los balances de las monedas que tienen un balance libre
+        # Lasketaan yhteen valuuttojen saldot, joilla on vapaata saldoa
         for balance in account_info['balances']:
             free_balance = float(balance['free'])
             if free_balance > 0:
@@ -41,16 +42,16 @@ class APIs:
 
     @classmethod
     def get_futures_balance(cls, futures_client):
-        """Obtiene el balance total y disponible de Futures"""
+        """Hakee Futures-tilin kokonais- ja käytettävissä olevan saldon"""
         account_info = futures_client.futures_account()
         total_futures_balance = 0.0
         futures_balances = []
 
-        # Iterar sobre los activos y obtener el balance disponible
+        # Käydään läpi omaisuuserät ja haetaan käytettävissä oleva saldo
         for asset in account_info['assets']:
             wallet_balance = float(asset['walletBalance'])
-            available_balance = float(asset['availableBalance'])  # Balance disponible para trading
-            if wallet_balance > 0 or available_balance > 0:  # Solo mostrar si hay balance
+            available_balance = float(asset['availableBalance'])  # Käytettävissä oleva saldo kaupankäyntiin
+            if wallet_balance > 0 or available_balance > 0:  # Näytetään vain, jos on saldoa
                 futures_balances.append({
                     'asset': asset['asset'],
                     'wallet_balance': wallet_balance,
@@ -58,22 +59,22 @@ class APIs:
                     'unrealized_pnl': float(asset['unrealizedProfit']),
                     'margin_balance': float(asset['marginBalance'])
                 })
-                total_futures_balance += available_balance  # Sumamos solo el balance disponible
+                total_futures_balance += available_balance  # Lasketaan vain käytettävissä oleva saldo
 
         return total_futures_balance, futures_balances
 
     @classmethod
     def get_futures_account_info(cls, futures_client):
-        """Obtiene la información de la cuenta de Futuros"""
+        """Hakee Futures-tilin tiedot"""
         try:
-            # Llamada a la API de Binance
+            # Binance API -kutsu
             response = futures_client.futures_account()
-            # Validar si la respuesta es un dict válido
+            # Tarkistetaan, onko vastaus kelvollinen sanakirja
             if not isinstance(response, dict):
-                logger.error(f"Respuesta inesperada de la API: {response}")
+                logger.error(f"API:sta saatu odottamaton vastaus: {response}")
                 return None
             
             return response
         except BinanceAPIException as e:
-            logger.error(f"Error al obtener datos de la cuenta de Futuros: {e}")
+            logger.error(f"Virhe Futures-tilin tietojen hakemisessa: {e}")
             return None
