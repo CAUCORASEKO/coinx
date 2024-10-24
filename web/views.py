@@ -1,11 +1,11 @@
-# views.py 
+# views.py
 import logging
 import os
 from web.models import Payment
 from web.coinpayments_api import CoinPaymentsAPI
 from django.shortcuts import render
 from django.conf import settings
-from binance.client import Client as FuturesClient  # Cliente de Futuros
+from binance.client import Client as FuturesClient  # Futuuri-asiakas
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.urls import reverse
@@ -17,21 +17,20 @@ from web.forms import RegistrationForm, ApiKeyForm
 from web.models import UserProfile
 from cryptography.fernet import Fernet
 
-# Configuración del logger
+# Loggerin konfigurointi
 logger = logging.getLogger(__name__)
 
 # -----------------------------
-# Vistas de páginas generales
+# Yleiset näkymät
 # -----------------------------
 
-# Página de inicio
+# Etusivu
 def index(request):
     return render(request, 'web/index.html')
 
 # -------------------------------------------
-# Vistas de autenticación y registro de usuarios
+# Käyttäjän rekisteröinti- ja kirjautumisnäkymät
 # -------------------------------------------
-
 
 def register_view(request):
     if request.method == 'POST':
@@ -42,20 +41,20 @@ def register_view(request):
             user.is_active = False
             user.save()
 
-            # Validar que la clave de cifrado esté configurada correctamente
+            # Varmista, että salausavain on asetettu oikein
             if not settings.ENCRYPTION_KEY:
                 if settings.DEBUG:
-                    # Si estamos en modo de desarrollo (localhost), usar una clave de prueba
+                    # Kehitystilassa (localhost), käytetään testisalausavainta
                     test_key = Fernet.generate_key()
                     fernet = Fernet(test_key)
-                    print("Using a test encryption key for localhost. This should not be used in production.")
+                    print("Testisalausavainta käytetään localhostissa. Tämä ei saa olla käytössä tuotannossa.")
                 else:
-                    # En producción, lanzar un error si no está configurada la clave
+                    # Tuotannossa, jos avain puuttuu, näytetään virhe
                     messages.error(request, 'Encryption key is not set. Please contact support.')
                     return redirect('register')
             else:
                 try:
-                    # Convertir la clave a bytes y crear el objeto Fernet
+                    # Muutetaan avain tavuiksi ja luodaan Fernet-objekti
                     fernet = Fernet(settings.ENCRYPTION_KEY.encode())
                 except Exception as e:
                     logger.error(f"Encryption error: {e}")
@@ -63,16 +62,16 @@ def register_view(request):
                     return redirect('register')
 
             try:
-                # Encriptar y almacenar las claves API
+                # Salaa ja tallenna API-avaimet
                 api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode())
                 api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode())
             except Exception as e:
-                # Manejar cualquier error relacionado con el cifrado de datos
+                # Käsittele mahdolliset salausvirheet
                 logger.error(f"Encryption error: {e}")
                 messages.error(request, 'An error occurred while encrypting your API keys. Please try again later.')
                 return redirect('register')
 
-            # Guardar perfil del usuario incluyendo otros datos del formulario
+            # Tallenna käyttäjän profiili ja muut tiedot
             UserProfile.objects.create(
                 user=user,
                 real_name=form.cleaned_data['real_name'],
@@ -80,13 +79,13 @@ def register_view(request):
                 country=form.cleaned_data['country'],
                 city=form.cleaned_data['city'],
                 postal_code=form.cleaned_data['postal_code'],
-                phone_number=form.cleaned_data.get('phone_number', ''),  # Campo opcional
+                phone_number=form.cleaned_data.get('phone_number', ''),  # Valinnainen kenttä
                 platform=form.cleaned_data['platform'],
                 api_key_encrypted=api_key_encrypted,
                 api_secret_encrypted=api_secret_encrypted,
             )
 
-            # Enviar email de confirmación
+            # Lähetä vahvistusviesti sähköpostitse
             send_confirmation_email(user)
 
             messages.success(request, 'Please check your email to confirm your account.')
@@ -97,19 +96,19 @@ def register_view(request):
     return render(request, 'web/register.html', {'form': form})
 
 
-# Función para enviar email de confirmación
+# Funktio vahvistusviestin lähettämiseksi
 def send_confirmation_email(user):
     user_profile = UserProfile.objects.get(user=user)
     token = user_profile.email_confirmation_token
     confirmation_url = reverse('confirm_email', args=[token])
 
-    # Cambia la URL según tu entorno
+    # Muuta URL ympäristön mukaan
     if settings.DEBUG:
         full_confirmation_url = f'http://localhost:8000{confirmation_url}'
     else:
         full_confirmation_url = f'https://coinx-production.up.railway.app{confirmation_url}'
 
-    # Enviar el email
+    # Lähetä sähköposti
     try:
         send_mail(
             'Confirm your registration',
@@ -122,7 +121,7 @@ def send_confirmation_email(user):
         logger.error(f"Error sending confirmation email: {e}")
 
 
-# Vista para confirmar el email
+# Sähköpostin vahvistusnäkymä
 def confirm_email(request, token):
     try:
         user_profile = UserProfile.objects.get(email_confirmation_token=token)
@@ -136,43 +135,43 @@ def confirm_email(request, token):
         return redirect('register')
 
 # --------------------------
-# Vistas del dashboard
+# Dashboard-näkymät
 # --------------------------
 
-from binance.client import Client as FuturesClient  # Esto ya está importado como FuturesClient
+from binance.client import Client as FuturesClient  # Tämä on jo tuotu nimellä FuturesClient
 
 @login_required
 def dashboard_view(request):
     user_profile = get_object_or_404(UserProfile, user=request.user)
 
-    # Desencriptar las claves API del usuario
+    # Decryptataan käyttäjän API-avaimet
     fernet = Fernet(settings.ENCRYPTION_KEY)
     api_key = fernet.decrypt(user_profile.api_key_encrypted).decode()
     api_secret = fernet.decrypt(user_profile.api_secret_encrypted).decode()
 
-    # Crear cliente de Binance con las claves del usuario
+    # Luo Binance-asiakas käyttäjän avaimilla
     client = FuturesClient(api_key, api_secret)
 
     try:
-        # Obtener balance en Spot
-        account_info = client.get_account()  # Información de cuenta Spot
+        # Hae Spot-tilin saldo
+        account_info = client.get_account()  # Spot-tilin tiedot
         spot_balance = sum(float(asset['free']) for asset in account_info['balances'] if float(asset['free']) > 0)
 
-        # Obtener balance en Futuros
+        # Hae Futures-tilin saldo
         futures_balance = sum(float(balance['balance']) for balance in client.futures_account_balance() if balance['asset'] == 'USDT')
 
-        # Calcular el cambio en el portafolio
+        # Lasketaan portfolion muutos
         portfolio_change = futures_balance - spot_balance
         portfolio_change_percentage = (portfolio_change / spot_balance) * 100 if spot_balance != 0 else 0
 
-        # Obtener datos de las monedas en Spot (ejemplo de cómo obtener BTC y ETH)
+        # Hae Spot-tilin kolikkotiedot (esim. BTC ja ETH)
         coins = []
         for asset in account_info['balances']:
-            if float(asset['free']) > 0:  # Solo agregar si hay saldo disponible
+            if float(asset['free']) > 0:  # Lisää vain, jos saldoa on
                 symbol = asset['asset']
-                if symbol != 'USDT':  # Evitar USDT u otras monedas no deseadas
+                if symbol != 'USDT':  # Vältetään USDT ja muut ei-toivotut kolikot
                     try:
-                        # Obtener el precio de la moneda contra USDT
+                        # Hae kolikon hinta suhteessa USDT:hen
                         ticker = client.get_symbol_ticker(symbol=symbol + 'USDT')
                         price = float(ticker['price'])
                         coins.append({
@@ -182,24 +181,24 @@ def dashboard_view(request):
                             'available': float(asset['free']),
                             'quantity': float(asset['free']),
                             'price': price,
-                            'price_24h': price  # Esto puedes cambiarlo para obtener cambio en 24h.
+                            'price_24h': price  # Tämä voidaan muuttaa 24h hintamuutokseksi.
                         })
                     except Exception as e:
-                        # Si no existe un par de comercio para esta moneda, ignórala
-                        logger.error(f"Error obteniendo datos para {symbol}: {e}")
+                        # Jos kolikolle ei ole kaupankäyntiparia, ohita se
+                        logger.error(f"Virhe kolikkotietojen hakemisessa {symbol}: {e}")
 
         coins_count = len(coins)
 
     except Exception as e:
-        logger.error(f"Error al obtener los datos de Binance: {e}")
-        # Si falla la conexión con la API o cualquier error, mostrar valores simulados
+        logger.error(f"Virhe Binance-tietojen haussa: {e}")
+        # Jos API-yhteys epäonnistuu tai tapahtuu virhe, näytetään simuloidut arvot
         spot_balance = 0
         futures_balance = 0
         portfolio_change = 0
         portfolio_change_percentage = 0
         coins = []
 
-    # Renderizar la plantilla del dashboard con las señales y datos
+    # Renderöidään dashboard-sivu signaaleilla ja tiedoilla
     return render(request, 'web/dashboard.html', {
         'spot_balance': spot_balance,
         'futures_balance': futures_balance,
@@ -209,13 +208,13 @@ def dashboard_view(request):
         'coins_count': coins_count,
     })
 
-# Vista para actualizar claves API
+# Näkymä API-avainten päivittämiseen
 @login_required
 def update_api_keys(request):
     if request.method == 'POST':
         form = ApiKeyForm(request.POST)
         if form.is_valid():
-            # Actualizar las claves API
+            # Päivitä API-avaimet
             user_profile = UserProfile.objects.get(user=request.user)
             fernet = Fernet(settings.ENCRYPTION_KEY)
             user_profile.api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode())
@@ -230,7 +229,7 @@ def update_api_keys(request):
     return render(request, 'web/update_api_keys.html', {'form': form})
 
 # -----------------------------
-# Recuperación de nombre de usuario
+# Käyttäjänimen palautus
 # -----------------------------
 
 def username_recovery_view(request):
@@ -253,61 +252,55 @@ def username_recovery_view(request):
 
     return render(request, 'web/username_recovery.html')
 
-# Vista para seleccionar el plan de pago
-
-
+# Näkymä maksusuunnitelman valintaan
 @login_required
 def payment_subscription(request):
     if request.method == 'POST':
         plan = request.POST.get('plan')
         return redirect('payment_instructions', plan=plan)
 
-    # Renderizar la plantilla de selección de plan de pago
+    # Renderöidään maksusuunnitelman valintasivu
     return render(request, 'web/payments/select_plan.html')
 
 
-# Vista para mostrar las instrucciones de pago
+# Näkymä maksun ohjeiden näyttämiseen
 @login_required
 def payment_instructions(request, plan):
-    # Definir el monto basado en el plan seleccionado
+    # Määritellään summa valitun suunnitelman mukaan
     if plan == 'monthly':
         amount = 20
         address = '0x376d4558b59DcF50f4275A4382806d05446dF654'
         network = 'Ethereum (ERC-20)'
-        memo = None  # No se requiere memo para este plan
+        memo = None  # Tätä suunnitelmaa ei vaadita muistioon
     elif plan == 'quarterly':
         amount = 50
         address = '0xD07A1a5A795E95468674D0ff886a70523FfD16c'
         network = 'BNB Smart Chain (BSC)'
-        memo = None  # No se requiere memo para este plan
+        memo = None  # Tätä suunnitelmaa ei vaadita muistioon
     elif plan == 'annual':
         amount = 100
         address = 'bnb1zdrqpt3zjs6k68rsest3xpun977uh2w9ywg5wf'
-        memo = 'D85bfbfda9d654a40'  # Este plan requiere un memo específico
+        memo = 'D85bfbfda9d654a40'  # Tämä suunnitelma vaatii tietyn muiston
         network = 'BNB (Mainnet)'
     else:
         messages.error(request, 'Invalid plan selected.')
         return redirect('payment_subscription')
 
-    # Renderizar la plantilla con las variables necesarias, incluyendo el memo
+    # Renderöidään maksusivun malli tarvittavilla muuttujilla, mukaan lukien memo
     return render(request, 'web/payments/instructions.html', {
         'plan': plan,
         'amount': amount,
         'address': address,
-        'memo': memo,  # Asegúrate de pasar el memo a la plantilla
+        'memo': memo,  # Varmista, että memo välitetään malliin
         'network': network
     })
 
-
-
-
-
 @login_required
 def create_payment(request, plan):
-    # Inicializar la API con las llaves
+    # Alustetaan API avaimilla
     api = CoinPaymentsAPI(public_key=settings.COINPAYMENTS_API_KEY, private_key=settings.COINPAYMENTS_API_SECRET)
 
-    # Definir el monto y otros parámetros basados en el plan seleccionado
+    # Määritellään summa ja muut parametrit valitun suunnitelman mukaan
     if plan == 'monthly':
         amount = 20
         memo = None
@@ -318,30 +311,30 @@ def create_payment(request, plan):
         network = 'BNB Smart Chain (BSC)'
     elif plan == 'annual':
         amount = 100
-        memo = 'D85bfbfda9d654a40'  # Memo específico para el plan anual
+        memo = 'D85bfbfda9d654a40'  # Erityinen memo vuosittaiselle suunnitelmalle
         network = 'BNB Mainnet'
     else:
         messages.error(request, 'Invalid plan selected.')
         return redirect('payment_subscription')
 
-    # Crear el pago usando la API de CoinPayments
+    # Luo maksu CoinPayments API:n avulla
     try:
         response = api.create_transaction(
             amount=amount,
-            currency1='USDT',  # Moneda en la que se recibirá el pago
-            currency2='USDT',  # Moneda del cliente
+            currency1='USDT',  # Maksun valuutta
+            currency2='USDT',  # Asiakkaan valuutta
             buyer_email=request.user.email,
             item_name=f'Subscription plan: {plan}',
-            custom=str(request.user.id)  # Asegúrate de convertir el ID a string
+            custom=str(request.user.id)  # Muunna ID stringiksi
         )
 
-        # Procesar la respuesta y mostrar la página de instrucciones de pago
+        # Käsitellään vastaus ja näytetään maksun ohjesivu
         if response['error'] == 'ok':
             transaction_id = response['result']['txn_id']
             address = response['result']['address']
             amount_due = response['result']['amount']
 
-            # Crear un registro del pago en la base de datos
+            # Luo maksutapahtuma tietokantaan
             payment = Payment.objects.create(
                 user=request.user,
                 plan=plan,
@@ -350,15 +343,15 @@ def create_payment(request, plan):
                 transaction_id=transaction_id,
                 memo=memo,
                 network=network,
-                status='pending'  # Estado inicial
+                status='pending'  # Alustava tila
             )
 
-            # Redirigir a la página de instrucciones de pago
+            # Ohjaa maksun ohjesivulle
             return render(request, 'web/payments/instructions.html', {
                 'address': address,
                 'amount': amount_due,
                 'transaction_id': transaction_id,
-                'memo': memo,  # Asegúrate de que el memo se envía aquí
+                'memo': memo,  # Varmista, että memo välitetään täällä
                 'plan': plan,
                 'network': network
             })
@@ -367,14 +360,11 @@ def create_payment(request, plan):
             return redirect('payment_subscription')
 
     except Exception as e:
-        logger.error(f"Error creating transaction: {str(e)}")
+        logger.error(f"Virhe luotaessa tapahtumaa: {str(e)}")
         messages.error(request, f"Error: {str(e)}")
         return redirect('payment_subscription')
-    
 
-
-# User Payment status view 
-
+# Käyttäjän maksuhistorian näkymä
 @login_required
 def payment_history(request):
     payments = Payment.objects.filter(user=request.user).order_by('-created_at')
