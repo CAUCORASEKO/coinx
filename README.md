@@ -74,5 +74,22 @@ To set up the project locally, follow these steps:
     COINPAYMENTS_API_SECRET=your_coinpayments_private_key
     ENCRYPTION_KEY=your_fernet_encryption_key
 
+## API Keys
+
+Ensure you have valid API keys for Binance and CoinPayments and add them to the environment as shown above.
+
+**Database Migrations**
+
+To set up the database, run the following commands:
+
+**Make Migrations**:
+     
+     python manage.py makemigrations
+
+**Migrate**:
+
+    python manage.py migrate
+
+This will create the necessary tables and structures in the database.
 
 
