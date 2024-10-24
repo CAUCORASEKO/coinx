@@ -1,20 +1,21 @@
+# settings.py 
 import os
 import sys
 from pathlib import Path
 from cryptography.fernet import Fernet
 import dj_database_url
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Rakentaa projektin polut tällä tavoin: BASE_DIR / 'alihakemisto'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Secret key and debug settings
+# Salainen avain ja debug-asetukset
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-05zaqfi0rmq(+6xw70jpted)-6wy*$lnp&)&4k=(6-x-no)fa0')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# Allowed hosts settings
+# Sallitut isännät
 ALLOWED_HOSTS = ['*'] if DEBUG else ['coinx-production.up.railway.app', 'localhost', '127.0.0.1']
 
-# Application definition
+# Sovellusmääritykset
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -22,12 +23,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'web',  # Custom app
+    'web',  # Mukautettu sovellus
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Whitenoise middleware for serving static files
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Whitenoise middleware staattisten tiedostojen palvelua varten
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -56,7 +57,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wsgi.application'
 
-# Database configuration
+# Tietokannan konfigurointi
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3' if DEBUG else 'django.db.backends.postgresql',
@@ -65,11 +66,11 @@ DATABASES = {
     }
 }
 
-# Debug information for the console
+# Debug-tiedot konsolille
 print(f"BASE_DIR: {BASE_DIR}", file=sys.stderr)
 print(f"DATABASE PATH: {DATABASES['default'].get('NAME', 'Not set')}", file=sys.stderr)
 
-# Password validation
+# Salasanan validointiasetukset
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -77,27 +78,27 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# Kansainvälistymisasetukset
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Staattiset tiedostot (CSS, JavaScript, kuvat)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Static files storage configuration for production
+# Staattisten tiedostojen varastointiasetus tuotannolle
 if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Additional locations of static files
+# Muita staattisten tiedostojen sijainteja
 STATICFILES_DIRS = [BASE_DIR / 'web/static'] if (BASE_DIR / 'web/static').exists() else []
 
-# Default primary key field type
+# Ensisijainen avainkentän tyyppi
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Email configuration
+# Sähköpostin konfigurointi
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
@@ -109,14 +110,14 @@ else:
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-# CoinPayments API Keys
+# CoinPayments API-avaimet
 COINPAYMENTS_API_KEY = os.getenv('COINPAYMENTS_API_KEY')
 COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET')
 
-# Encryption key
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '').encode()  # Convertir a bytes
+# Salausavain
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '').encode()  # Muutetaan tavuiksi
 
-# Verificar si la clave está correctamente configurada
+# Tarkistetaan, onko avain oikein asetettu
 if not ENCRYPTION_KEY:
     print("WARNING: 'ENCRYPTION_KEY' is not set in the environment variables.", file=sys.stderr)
 else:
@@ -124,23 +125,23 @@ else:
         Fernet(ENCRYPTION_KEY)
     except Exception as e:
         print(f"ERROR: Invalid encryption key: {e}", file=sys.stderr)
-        ENCRYPTION_KEY = None  # Set to None if invalid
+        ENCRYPTION_KEY = None  # Asetetaan None jos avain on virheellinen
 
-# Login redirect URL
+# Kirjautumisen uudelleenohjaus-URL
 LOGIN_REDIRECT_URL = '/dashboard/'
 
-# CSRF trusted origins
+# CSRF-luotetut lähteet
 if not DEBUG:
     CSRF_TRUSTED_ORIGINS = ['https://coinx-production.up.railway.app']
 
-# Security settings for production
+# Tuotannon turvallisuusasetukset
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Logging configuration
+# Lokiasetukset
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
