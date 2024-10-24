@@ -1,46 +1,47 @@
+<!-- user_dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>User Dashboard</title> <!-- Sivun otsikko -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Lataa Chart.js-kirjasto kaavioita varten -->
 </head>
 <body>
-    <h1>Welcome, {{ user.username }}</h1>
+    <h1>Welcome, {{ user.username }}</h1> <!-- Tervetuloviesti käyttäjälle -->
 
-    <h2>Spot Account Info</h2>
+    <h2>Spot Account Info</h2> <!-- Spot-tilin tiedot -->
     <ul>
-        <li>Balance: {{ account_info['totalAssetOfBtc'] }} BTC</li>
-        <!-- Más detalles según lo que devuelva la API -->
+        <li>Balance: {{ account_info['totalAssetOfBtc'] }} BTC</li> <!-- Spot-tilin saldo -->
+        <!-- Lisää yksityiskohtia API:n palauttaman tiedon mukaan -->
     </ul>
 
-    <h2>Futures Account Info</h2>
+    <h2>Futures Account Info</h2> <!-- Futuuritilin tiedot -->
     <ul>
-        <li>Balance: {{ futures_account_info['totalWalletBalance'] }} USDT</li>
-        <!-- Más detalles según lo que devuelva la API -->
+        <li>Balance: {{ futures_account_info['totalWalletBalance'] }} USDT</li> <!-- Futuuritilin saldo -->
+        <!-- Lisää yksityiskohtia API:n palauttaman tiedon mukaan -->
     </ul>
 
-    <h2>Inversiones - Rendimiento</h2>
-    <canvas id="investmentChart"></canvas>
+    <h2>Investments - Performance</h2> <!-- Otsikko kaaviolle, joka näyttää sijoitusten tuoton -->
+    <canvas id="investmentChart"></canvas> <!-- Chart.js-kangas kaaviota varten -->
 
     <script>
         var ctx = document.getElementById('investmentChart').getContext('2d');
         var investmentChart = new Chart(ctx, {
-            type: 'line',
+            type: 'line', // Viivakaavio sijoitusten tuoton näyttämiseksi
             data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],  // Ejemplo de etiquetas de tiempo
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],  // Aikajanan esimerkkiarvot
                 datasets: [{
-                    label: 'Rendimiento',
-                    data: [{{ account_info['totalAssetOfBtc'] }}, 0.5, 1.2, 0.7, 0.9, 1.5],  // Datos reales desde Binance
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    fill: false
+                    label: 'Rendimiento', // Sarjan nimi
+                    data: [{{ account_info['totalAssetOfBtc'] }}, 0.5, 1.2, 0.7, 0.9, 1.5],  // Todelliset tiedot Binance-API:sta
+                    borderColor: 'rgba(75, 192, 192, 1)', // Viivan väri
+                    fill: false // Estä alueen täyttö
                 }]
             },
             options: {
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true // Y-akselin aloitus nollasta
                     }
                 }
             }
