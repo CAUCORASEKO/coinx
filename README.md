@@ -99,3 +99,9 @@ This will create the necessary tables and structures in the database.
 
     python manage.py runserver
 
+Access the application at http://127.0.0.1:8000/.
+
+## Management Commands
+
+**We have a custom management command to run the trading signals**:
+
