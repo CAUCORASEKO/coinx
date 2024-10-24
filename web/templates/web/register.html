@@ -1,47 +1,48 @@
+<!-- register.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     {% load static %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
+    <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon"> <!-- Favicon kuvake -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Register</title> <!-- Sivun otsikko -->
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
 </head>
 <body>
-    {% include 'web/header.html' %}
+    {% include 'web/header.html' %} <!-- Ylätunnisteen sisällyttäminen -->
 
     <main>
-        <div class="register-container">
+        <div class="register-container"> <!-- Rekisteröintilomakkeen säiliö -->
             <h2>Register</h2>
             
-            <form method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
+            <form method="post"> <!-- Lomake käyttäjän rekisteröimiseksi -->
+                {% csrf_token %} <!-- CSRF-suojaus -->
+                {{ form.as_p }} <!-- Lomakekenttien renderointi -->
 
                 {% if form.errors %}
-                <div class="form-errors">
+                <div class="form-errors"> <!-- Virheiden näyttäminen lomakkeessa -->
                     <ul>
                         {% for field in form %}
                             {% for error in field.errors %}
-                                <li>{{ field.label }}: {{ error }}</li>
+                                <li>{{ field.label }}: {{ error }}</li> <!-- Kentän virheilmoitus -->
                             {% endfor %}
                         {% endfor %}
                         {% for error in form.non_field_errors %}
-                            <li>{{ error }}</li>
+                            <li>{{ error }}</li> <!-- Yleinen lomakevirhe -->
                         {% endfor %}
                     </ul>
                 </div>
                 {% endif %}
 
-                <button type="submit">Register</button>
+                <button type="submit">Register</button> <!-- Rekisteröintipainike -->
             </form>
 
-            <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+            <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p> <!-- Linkki kirjautumissivulle -->
         </div>
     </main>
 
-    {% include 'web/footer.html' %}
+    {% include 'web/footer.html' %} <!-- Alatunnisteen sisällyttäminen -->
 </body>
 </html>
