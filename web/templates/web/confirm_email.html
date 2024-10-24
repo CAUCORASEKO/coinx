@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,14 +10,16 @@
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
 </head>
 <body>
-    {% include 'web/header.html' %}
+    {% include 'web/header.html' %} <!-- Sisällytä header-tiedosto -->
 
     <main>
         <h2>Email Confirmation</h2>
-        <p>We have sent you a confirmation email. Please check your inbox to activate your account.</p>
+        <p>We have sent you a confirmation email. Please check your inbox to activate your account.</p> <!-- Ilmoittaa, että vahvistusviesti on lähetetty -->
+
     </main>
 
-    {% include 'web/footer.html' %}
+    {% include 'web/footer.html' %} <!-- Sisällytä footer-tiedosto -->
 </body>
 </html>
+
 

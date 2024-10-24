@@ -9,13 +9,13 @@
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
 </head>
 <body>
-    {% include 'web/header.html' %}
-    
+    {% include 'web/header.html' %} <!-- Sisällytä header-tiedosto -->
+
     <div class="instructions-container">
         <h1>Payment Instructions</h1>
-        <p>You have selected the <strong>{{ plan }}</strong> plan.</p>
+        <p>You have selected the <strong>{{ plan }}</strong> plan.</p> <!-- Näyttää valitun suunnitelman -->
 
-        <p>Please send exactly <strong>{{ amount }} USDT</strong> to the following address:</p>
+        <p>Please send exactly <strong>{{ amount }} USDT</strong> to the following address:</p> <!-- Näyttää maksettavan määrän -->
         <div class="highlight-text">{{ address }}</div> <!-- Tässä näytämme koko osoitteen -->
 
         {% if memo %}
@@ -23,22 +23,22 @@
             <div class="memo-text">{{ memo }}</div> <!-- Tässä näytämme muistiinpanon -->
         {% endif %}
 
-        <p>Your transaction ID is:</p>
-        <div class="highlight-text">{{ transaction_id }}</div>
+        <p>Your transaction ID is:</p> <!-- Näyttää käyttäjän tapahtumatunnuksen -->
+        <div class="highlight-text">{{ transaction_id }}</div> <!-- Tunnus näkyvissä selkeästi -->
 
-        <h2>Important Instructions</h2>
+        <h2>Important Instructions</h2> <!-- Tärkeät ohjeet -osio -->
         <ul class="warning-list">
-            <li>Make sure to send the exact amount of USDT.</li>
-            <li>Use the correct network: <strong>{{ network }}</strong>.</li>
-            <li>Double-check the address and transaction details before confirming.</li>
+            <li>Make sure to send the exact amount of USDT.</li> <!-- Varmista, että lähetät oikean määrän USDT -->
+            <li>Use the correct network: <strong>{{ network }}</strong>.</li> <!-- Käytä oikeaa verkkoa -->
+            <li>Double-check the address and transaction details before confirming.</li> <!-- Tarkista osoite ja tapahtumatiedot ennen vahvistamista -->
         </ul>
 
         <!-- Muokkaa etikettiä (muokkaa suunnitelmaa) -painike -->
         <div class="edit-label-container">
-            <button class="edit-label-button" onclick="window.location.href='{% url 'payment_subscription' %}'">Edit Label</button>
+            <button class="edit-label-button" onclick="window.location.href='{% url 'payment_subscription' %}'">Edit Label</button> <!-- Siirtyminen suunnitelman muokkaussivulle -->
         </div>
     </div>
 
-    {% include 'web/footer.html' %}
+    {% include 'web/footer.html' %} <!-- Sisällytä footer-tiedosto -->
 </body>
 </html>
