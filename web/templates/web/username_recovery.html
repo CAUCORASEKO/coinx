@@ -1,27 +1,28 @@
 <!-- username_recovery.html -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     {% load static %}
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
-    <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
+    <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon"> <!-- Favicon asettaminen -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Username Recovery</title>
+    <title>Username Recovery</title> <!-- Sivun otsikko - Käyttäjänimen palautus -->
 </head>
 <body>
-    {% include 'web/header.html' %}
+    {% include 'web/header.html' %} <!-- Sisällytä yläosa -->
 
-    <main class="login-container">
-        <h2>Recover Your Username</h2>
-        <form method="post" action="{% url 'username_recovery' %}">
-            {% csrf_token %}
-            <label for="email">Enter your email address:</label>
-            <input type="email" id="email" name="email" required>
-            <button type="submit" class="button primary">Send Username</button>
+    <main class="login-container"> <!-- Lomakkeen kontaineri -->
+        <h2>Recover Your Username</h2> <!-- Otsikko käyttäjänimen palautukselle -->
+        <form method="post" action="{% url 'username_recovery' %}"> <!-- Lomakkeen post-toiminto -->
+            {% csrf_token %} <!-- CSRF-suojaus -->
+            <label for="email">Enter your email address:</label> <!-- Käyttäjälle annettava ohje syöttää sähköpostiosoite -->
+            <input type="email" id="email" name="email" required> <!-- Sähköpostikenttä, pakollinen syöttö -->
+            <button type="submit" class="button primary">Send Username</button> <!-- Lähetä-painike -->
         </form>
     </main>
 
-    {% include 'web/footer.html' %}
+    {% include 'web/footer.html' %} <!-- Sisällytä alaosa -->
 </body>
 </html>
