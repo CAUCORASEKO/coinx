@@ -2,54 +2,61 @@
 <html lang="en">
 <head>
     {% load static %}
+    <!-- Päätyylitiedoston lataaminen -->
     <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+    <!-- Favicon-kuvake verkkosivulle -->
     <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Chart.js-kirjaston lataaminen -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- load Chart.js -->
     <title>Dashboard</title>
 </head>
 <body>
-    {% include 'web/header.html' %}
+    {% include 'web/header.html' %} <!-- Header-osan sisällyttäminen -->
     
-
     <div class="select-plan-container">
+        <!-- Ensimmäinen suunnitelmakortti: Starter -->
         <div class="plan-card">
             <h2>Starter</h2>
             <p class="price">20 USDT</p>
             <p class="duration">/month</p>
+            <!-- Lomake kuukausittaisen tilauksen päivittämiseksi -->
             <form method="POST" action="{% url 'payment_subscription' %}">
-                {% csrf_token %}
-                <input type="hidden" name="plan" value="monthly">
-                <button type="submit">Upgrade</button>
+                {% csrf_token %} <!-- CSRF-suojauksen token -->
+                <input type="hidden" name="plan" value="monthly"> <!-- Piilotettu kenttä suunnitelman tyypille -->
+                <button type="submit">Upgrade</button> <!-- Päivitä-painike -->
             </form>
         </div>
 
+        <!-- Toinen suunnitelmakortti: Advanced (Suosituin) -->
         <div class="plan-card popular">
             <h2>Advanced</h2>
             <p class="price">50 USDT</p>
             <p class="duration">/quarterly</p>
+            <!-- Lomake neljännesvuosittaisen tilauksen päivittämiseksi -->
             <form method="POST" action="{% url 'payment_subscription' %}">
-                {% csrf_token %}
-                <input type="hidden" name="plan" value="quarterly">
-                <button type="submit">Upgrade</button>
+                {% csrf_token %} <!-- CSRF-suojauksen token -->
+                <input type="hidden" name="plan" value="quarterly"> <!-- Piilotettu kenttä suunnitelman tyypille -->
+                <button type="submit">Upgrade</button> <!-- Päivitä-painike -->
             </form>
         </div>
 
+        <!-- Kolmas suunnitelmakortti: Premium -->
         <div class="plan-card">
             <h2>Premium</h2>
             <p class="price">100 USDT</p>
             <p class="duration">/annual</p>
+            <!-- Lomake vuosittaisen tilauksen päivittämiseksi -->
             <form method="POST" action="{% url 'payment_subscription' %}">
-                {% csrf_token %}
-                <input type="hidden" name="plan" value="annual">
-                <button type="submit">Upgrade</button>
+                {% csrf_token %} <!-- CSRF-suojauksen token -->
+                <input type="hidden" name="plan" value="annual"> <!-- Piilotettu kenttä suunnitelman tyypille -->
+                <button type="submit">Upgrade</button> <!-- Päivitä-painike -->
             </form>
         </div>
     </div>
 
-    {% include 'web/footer.html' %}
+    {% include 'web/footer.html' %} <!-- Footer-osan sisällyttäminen -->
 
 </body>
 </html>
-
