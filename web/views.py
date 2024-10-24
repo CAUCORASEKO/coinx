@@ -1,4 +1,4 @@
-#views
+# views.py 
 import logging
 import os
 from web.models import Payment
@@ -300,7 +300,7 @@ def payment_instructions(request, plan):
 
 
 
-# views.py
+
 
 @login_required
 def create_payment(request, plan):
