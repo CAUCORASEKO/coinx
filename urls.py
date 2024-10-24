@@ -20,6 +20,6 @@ from web import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),  # URL Admin panel Django
-    path('', include('web.urls')),  # Incluye URLs 'web' App
+    path('', include('web.urls')),  # Include URLs 'web' App
     path('payment/create/<str:plan>/', views.create_payment, name='create_payment'),
 ]
