@@ -45,7 +45,7 @@ Installation
 
 To set up the project locally, follow these steps:
 
-    Clone the Repository:
+**Clone the Repository**:
 
     git clone https://github.com/your-username/inversor.git 
     cd inversor
