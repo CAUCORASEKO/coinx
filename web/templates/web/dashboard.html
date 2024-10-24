@@ -6,39 +6,39 @@
     <link rel="icon" href="{% static 'web/favicon.ico' %}" type="image/x-icon">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- load Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Lataa Chart.js -->
     <title>Dashboard</title>
 </head>
 <body>
-    {% include 'web/header.html' %}
+    {% include 'web/header.html' %} <!-- Sisällytä header-tiedosto -->
 
-    <!-- Main Dashboard Container -->
+    <!-- Pää Dashboard -kontaineri -->
     <div class="dashboard-container">
-        <!-- First Row: Account Allocation Chart, Portfolio Change -->
+        <!-- Ensimmäinen rivi: Tilin jakautumiskaavio, Portfolion muutos -->
         <div class="dashboard-grid">
-            <!-- Account Allocation Widget -->
+            <!-- Tilin jakautuminen -widget -->
             <div class="widget balance-widget">
                 <h3>Account Allocation</h3>
                 <div id="balance-chart">
-                    <canvas id="accountChart"></canvas> <!-- Doughnut Chart -->
+                    <canvas id="accountChart"></canvas> <!-- Donitsikaavio -->
                 </div>
             </div>
 
-            <!-- Portfolio Change Widget -->
+            <!-- Portfolion muutos -widget -->
             <div class="widget portfolio-widget">
                 <h3>Portfolio Change</h3>
                 <p>${{ portfolio_change }} ({{ portfolio_change_percentage }}%)</p>
             </div>
 
-            <!-- Payment System Access -->
+            <!-- Maksujärjestelmän käyttö -->
             <div class="widget payment-widget">
                 <h3>Access Subscription Payment</h3>
                 <p>If you want to access the private Telegram channel, please select a plan and proceed with the payment.</p>
-                <a href="{% url 'payment_subscription' %}" class="payment-link">Go to Payment Page</a> <!-- Corrected URL -->
+                <a href="{% url 'payment_subscription' %}" class="payment-link">Go to Payment Page</a> <!-- Korjattu URL -->
             </div>
         </div>
 
-        <!-- Coin Table -->
+        <!-- Kolikkotaulukko -->
         <div class="widget coin-widget">
             <h3>Coins ({{ coins_count }})</h3>
             <table class="coin-table">
@@ -69,27 +69,27 @@
             </table>
         </div>
 
-        <!-- Logout Button -->
+        <!-- Kirjautumis ulos -painike -->
         <form method="post" action="{% url 'logout' %}" class="logout-form">
             {% csrf_token %}
             <button type="submit" class="logout-button">Logout</button>
         </form>
     </div>
 
-    {% include 'web/footer.html' %}
+    {% include 'web/footer.html' %} <!-- Sisällytä footer-tiedosto -->
 
 </body>
 
-<!-- Script for Account Allocation Chart -->
+<!-- Skripti tilin jakautumiskaaviolle -->
 <script>
     var ctx = document.getElementById('accountChart').getContext('2d');
     var accountChart = new Chart(ctx, {
         type: 'doughnut', 
         data: {
-            labels: ['Spot Balance', 'Futures Balance'],  <!-- Etiquetas del gráfico -->
+            labels: ['Spot Balance', 'Futures Balance'],  <!-- Kaavion etiketit -->
             datasets: [{
-                data: [{{ spot_balance }}, {{ futures_balance }}],  <!-- Datos que vienen del backend -->
-                backgroundColor: ['#007bff', '#28a745'],  <!-- Colores del gráfico -->
+                data: [{{ spot_balance }}, {{ futures_balance }}],  <!-- Tiedot backendistä -->
+                backgroundColor: ['#007bff', '#28a745'],  <!-- Kaavion värit -->
                 borderColor: ['#fff'],
                 borderWidth: 1
             }]
@@ -98,7 +98,7 @@
             responsive: true,
             maintainAspectRatio: false,
             legend: { position: 'bottom' },
-            title: { display: true, text: 'Account Allocation' }  <!-- Título del gráfico -->
+            title: { display: true, text: 'Account Allocation' }  <!-- Kaavion otsikko -->
         }
     });
 </script>
