@@ -92,4 +92,10 @@ To set up the database, run the following commands:
 
 This will create the necessary tables and structures in the database.
 
+## Running the Application
+### Development Server
+
+**To run the application locally**:
+
+    python manage.py runserver
 
