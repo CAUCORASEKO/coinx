@@ -105,3 +105,13 @@ Access the application at http://127.0.0.1:8000/.
 
 **We have a custom management command to run the trading signals**:
 
+    python manage.py run_signals
+
+
+## Testing
+
+**To run tests and ensure everything is functioning as expected**:
+
+    python manage.py test
+
+Make sure to set up a separate testing environment and database for best practices.
