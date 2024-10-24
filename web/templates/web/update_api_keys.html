@@ -1,19 +1,20 @@
-<!-- templates/web/update_api_keys.html -->
+<!-- update_api_keys.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update API Keys</title>
+    <title>Update API Keys</title> <!-- Sivun otsikko -->
 </head>
 <body>
-    <h2>Update your Binance API keys</h2>
+    <h2>Update your Binance API keys</h2> <!-- Otsikko API-avainten päivittämistä varten -->
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Update</button>
+    <form method="post"> <!-- Lomake API-avainten päivittämistä varten -->
+        {% csrf_token %} <!-- CSRF-suojaus lomakkeelle -->
+        {{ form.as_p }} <!-- Lomakekenttien renderointi -->
+        <button type="submit">Update</button> <!-- Päivityspainike -->
     </form>
 </body>
 </html>
+
 
