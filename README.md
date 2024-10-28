@@ -151,3 +151,59 @@ Deploy and access your application through the Railway domain.**
 ### License
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
+
+
+# **Inversor-projekti - Automatisoitu kryptokaupankäyntialusta**
+
+Tervetuloa Inversor-projektiin! Tämä alusta on suunniteltu automatisoitua kryptovaluuttakauppaa varten, ja se tarjoaa käyttäjäystävällisen käyttöliittymän sekä aloitteleville että kokeneille treidaajille. Järjestelmä integroituu useisiin kaupankäyntialustoihin ja API-rajapintoihin, tarjoten edistyneitä automaatiotyökaluja ja reaaliaikaisen sijoitusten seurannan.
+
+## **Sisällysluettelo**
+
+- [Ominaisuudet](#ominaisuudet)
+- [Käytetyt teknologiat](#käytetyt-teknologiat)
+- [Asennus](#asennus)
+- [Konfigurointi](#konfigurointi)
+- [Tietokannan migraatiot](#tietokannan-migraatiot)
+- [Sovelluksen käynnistäminen](#sovelluksen-käynnistäminen)
+- [Testaus](#testaus)
+- [Hakemistorakenne](#hakemistorakenne)
+- [Käyttöönotto](#käyttöönotto)
+- [Lisenssi](#lisenssi)
+
+---
+
+## **Ominaisuudet**
+
+Alusta tarjoaa kattavan valikoiman ominaisuuksia kryptokaupankäyntiin:
+
+- **Käyttäjien rekisteröinti ja todennus**: Turvallinen tilin luominen, kirjautuminen, uloskirjautuminen ja sähköpostivarmennus.
+- **API-avainten hallinta**: Käyttäjät voivat päivittää API-avaimensa kaupankäyntialustoille, kuten Binanceen.
+- **Automaattiset kaupankäyntibotit**: Tuki eri bottityypeille, kuten signaalibotit, DCA-botit, TradingView-botit ja Grid-botit.
+- **Salkun seuranta**: Reaaliaikainen seuranta spot- ja futuuritileille, mukaan lukien saldo- ja tapahtumahistoria.
+- **Maksujen integrointi**: Maksusuunnitelmat CoinPayments API -integraatiolla USDT-maksuja varten.
+- **Salasanan ja käyttäjätunnuksen palautus**: Järjestelmä salasanan ja käyttäjätunnuksen palautusta varten.
+- **Ylläpito-ominaisuudet**: Signaalien hallinta, käyttäjäryhmät, ilmoitukset ja anti-leak-toiminnot turvallista käyttöä varten.
+
+## **Käytetyt teknologiat**
+
+- **Framework**: Django (Python)
+- **Frontend**: HTML, CSS, JavaScript, Chart.js
+- **Tietokanta**: PostgreSQL (tuotanto), SQLite (kehitys)
+- **API:t**: Binance API, CoinPayments API
+- **Salaus**: Kryptografiaa käyttäen Fernet-salausta API-avainten turvalliseen tallennukseen
+- **Käyttöönotto**: Railway.app pilvikäyttöön
+
+## **Asennus**
+
+Projektin asennus paikallisesti:
+
+1. **Kloonaa repository**:
+   ```bash
+   git clone https://github.com/your-username/inversor.git
+   cd inversor
+
+1. **Luo virtuaaliympäristö**:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # Windowsissa käytä 'venv\Scripts\activate'
+
