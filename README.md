@@ -230,3 +230,18 @@ ENCRYPTION_KEY=your_encryption_key
 ```
 
 **Muistutus**: Muista vaihtaa DEBUG tilaan False tuotantoympäristössä.
+
+
+## API-avaimet
+
+Käyttäjät voivat päivittää omat Binance API -avaimensa sovelluksen käyttöliittymän kautta kirjautumisen jälkeen.
+
+### Tietokannan migraatiot
+
+Käynnistä migraatiot tietokannan alustamiseksi:
+
+   ```bash
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
+
