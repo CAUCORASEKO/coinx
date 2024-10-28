@@ -227,3 +227,6 @@ EMAIL_HOST_PASSWORD=your_email_password
 COINPAYMENTS_API_KEY=your_coinpayments_public_key
 COINPAYMENTS_API_SECRET=your_coinpayments_private_key
 ENCRYPTION_KEY=your_encryption_key
+```
+
+**Muistutus**: Muista vaihtaa DEBUG tilaan False tuotantoympäristössä.
