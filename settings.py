@@ -114,19 +114,20 @@ else:
 COINPAYMENTS_API_KEY = os.getenv('COINPAYMENTS_API_KEY')
 COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET')
 
-# Salausavain
-encryption_key_raw = os.getenv('ENCRYPTION_KEY', '')
-print(f"Raw ENCRYPTION_KEY: {encryption_key_raw}", file=sys.stderr)
-ENCRYPTION_KEY = encryption_key_raw.encode() if encryption_key_raw else None
 
-# Tarkistetaan, onko avain oikein asetettu
+# ENCRYPTION_KEY pakotettu asetuksissa testausta varten (korvaa tämä avaimella tuotantokäyttöön)
+ENCRYPTION_KEY = b'pkx0QTEggCmVkVwWoHXVzivoNw8AHd9KxLvYU1piCCQ='  # Avain bytes-muodossa
+
+# Tarkistetaan, onko ENCRYPTION_KEY asetettu ja kelvollinen
 if not ENCRYPTION_KEY:
     print("WARNING: 'ENCRYPTION_KEY' is not set in the environment variables.", file=sys.stderr)
 else:
-    print(f"ENCRYPTION_KEY (from Railway): {ENCRYPTION_KEY}", file=sys.stderr)  #Tulosta salattu avain vahvistaaksesi
+    print(f"ENCRYPTION_KEY (forced in settings.py file): {ENCRYPTION_KEY}", file=sys.stderr)  # Tulostetaan avain vahvistusta varten
     
     try:
+        # Testataan, onko avain kelvollinen Fernetille
         Fernet(ENCRYPTION_KEY)
+        print("ENCRYPTION_KEY loaded correctly and is valid.", file=sys.stderr)
     except Exception as e:
         print(f"ERROR: Invalid encryption key: {e}", file=sys.stderr)
         ENCRYPTION_KEY = None  # Asetetaan None jos avain on virheellinen
