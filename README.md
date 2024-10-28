@@ -245,3 +245,11 @@ Käynnistä migraatiot tietokannan alustamiseksi:
    python manage.py migrate
    ```
 
+## Sovelluksen käynnistäminen
+
+Käynnistä palvelin paikallisesti:
+   
+   ```bash
+   python manage.py runserver
+   ```
+
