@@ -115,3 +115,39 @@ Access the application at http://127.0.0.1:8000/.
     python manage.py test
 
 Make sure to set up a separate testing environment and database for best practices.
+
+## Directory Structure
+
+**Here's a quick overview of the main directories and files**:
+
+**inversor/**: Root directory for Django settings and configurations.
+
+**settings.py**: Application settings (database, API keys, etc.)
+**urls.py**: Global URL routing configuration.
+**wsgi.py**: WSGI configuration for deployment.
+
+
+**web/**: Main app directory for the project.
+
+**models.py**: Defines the database models (UserProfile, PaymentTransaction, etc.)
+**views.py**: Contains the logic for handling HTTP requests and rendering templates.
+**forms.py**: Forms for user registration and API key updates.
+**templates/**: HTML templates for views like registration, login, dashboard, and more.
+**static/**: Static files such as CSS, JavaScript, and images.
+
+**management/commands/**: Custom management commands for background processes.
+
+
+## Deployment
+
+The application is configured to deploy on Railway.app. Make sure the environment variables are set in your Railway project for secure deployment.
+Steps for Deployment
+
+**Push the code to your GitHub repository.
+Link your Railway project to the repository.
+Configure the environment variables in Railway’s settings.
+Deploy and access your application through the Railway domain.**
+
+### License
+
+This project is licensed under the MIT License. See the LICENSE file for more details.
