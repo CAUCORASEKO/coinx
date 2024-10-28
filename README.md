@@ -213,18 +213,19 @@ Projektin asennus paikallisesti:
 
 
 ## Konfigurointi
+
 ### Ympäristömuuttujat
 
-Varmista, että ympäristömuuttujat on asetettu turvallista asennusta varten. Luo .env-tiedosto projektin juureen ja lisää seuraavat muuttujat:
+Varmista, että ympäristömuuttujat on asetettu turvallista asennusta varten. Luo `.env`-tiedosto projektin juureen ja lisää seuraavat muuttujat:
 
-   SECRET_KEY=your_secret_key
-   DEBUG=True
-   DATABASE_URL=your_postgresql_database_url  # tuotantoa varten
-   EMAIL_HOST_USER=your_email
-   EMAIL_HOST_PASSWORD=your_email_password
-   COINPAYMENTS_API_KEY=your_coinpayments_public_key
-   COINPAYMENTS_API_SECRET=your_coinpayments_private_key
-   ENCRYPTION_KEY=your_encryption_key
+```env
+SECRET_KEY=your_secret_key
+DEBUG=True
+DATABASE_URL=your_postgresql_database_url  # tuotantoa varten
+EMAIL_HOST_USER=your_email
+EMAIL_HOST_PASSWORD=your_email_password
+COINPAYMENTS_API_KEY=your_coinpayments_public_key
+COINPAYMENTS_API_SECRET=your_coinpayments_private_key
+ENCRYPTION_KEY=your_encryption_key
 
-**Muistutus: Muista vaihtaa DEBUG tilaan False tuotantoympäristössä.
-**
+**Muistutus**: Muista vaihtaa DEBUG tilaan False tuotantoympäristössä.
