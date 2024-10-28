@@ -115,17 +115,23 @@ COINPAYMENTS_API_KEY = os.getenv('COINPAYMENTS_API_KEY')
 COINPAYMENTS_API_SECRET = os.getenv('COINPAYMENTS_API_SECRET')
 
 # Salausavain
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '').encode()  # Muutetaan tavuiksi
+encryption_key_raw = os.getenv('ENCRYPTION_KEY', '')
+print(f"Raw ENCRYPTION_KEY: {encryption_key_raw}", file=sys.stderr)
+ENCRYPTION_KEY = encryption_key_raw.encode() if encryption_key_raw else None
 
 # Tarkistetaan, onko avain oikein asetettu
 if not ENCRYPTION_KEY:
     print("WARNING: 'ENCRYPTION_KEY' is not set in the environment variables.", file=sys.stderr)
 else:
+    print(f"ENCRYPTION_KEY (from Railway): {ENCRYPTION_KEY}", file=sys.stderr)  #Tulosta salattu avain vahvistaaksesi
+    
     try:
         Fernet(ENCRYPTION_KEY)
     except Exception as e:
         print(f"ERROR: Invalid encryption key: {e}", file=sys.stderr)
         ENCRYPTION_KEY = None  # Asetetaan None jos avain on virheellinen
+
+
 
 # Kirjautumisen uudelleenohjaus-URL
 LOGIN_REDIRECT_URL = '/dashboard/'
