@@ -253,3 +253,34 @@ Käynnistä palvelin paikallisesti:
    python manage.py runserver
    ```
 
+Avaa selaimessa osoite http://127.0.0.1:8000/ nähdäksesi sovelluksen käyttöliittymän.
+
+
+## Testaus
+
+Projektiin kuuluu useita testejä varmistamaan perustoimintojen toimivuus:
+
+   ```bash
+   python manage.py test
+   ```
+
+
+## Hakemistorakenne
+
+Projektin tärkeimmät hakemistot ja niiden tarkoitus:
+
+- web/: Pääsovellus, sisältää kaikki näkymät, mallit ja lomakkeet
+- templates/: HTML-mallipohjat käyttöliittymälle
+- static/: CSS, JavaScript ja kuvatiedostot
+- management/commands/: Mukautetut komennot, kuten kaupankäyntisignaalien analysointi
+
+## Käyttöönotto
+
+Sovellus voidaan ottaa käyttöön Railwayn kaltaisessa pilvipalvelussa. Varmista, että kaikki ympäristömuuttujat on asetettu oikein ennen käyttöönottoa.
+
+- Ympäristömuuttujien määrittäminen: Railway tarjoaa helpon tavan lisätä ympäristömuuttujat hallintapaneelista.
+- Staattisten tiedostojen hallinta: Whitenoise käsittelee staattisten tiedostojen tarjoamisen tuotantoympäristössä.
+
+**Lisenssi**
+
+Tämä projekti on lisensoitu MIT-lisenssillä. Katso lisätietoja LICENSE-tiedostosta.
