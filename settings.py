@@ -106,7 +106,7 @@ else:
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.getenv('latribubooking@gmail.com')
+    EMAIL_HOST_USER = os.getenv('projektiraseko@gmail.com')
     EMAIL_HOST_PASSWORD = os.getenv('Raseko2024')
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
