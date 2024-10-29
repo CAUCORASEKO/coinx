@@ -99,6 +99,8 @@ STATICFILES_DIRS = [BASE_DIR / 'web/static'] if (BASE_DIR / 'web/static').exists
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+
+
 # Sähköpostin konfigurointi
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -107,11 +109,12 @@ else:
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'projektiraseko@gmail.com')
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'Raseko2024')
+
+    EMAIL_HOST_USER = 'projektiraseko@gmail.com'
+    EMAIL_HOST_PASSWORD = 'zgei ypdc zzvy ggad'  # La contraseña de aplicación generada
 
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 
 
 
