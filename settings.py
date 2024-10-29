@@ -111,7 +111,7 @@ else:
     EMAIL_USE_TLS = True
 
     EMAIL_HOST_USER = 'projektiraseko@gmail.com'
-    EMAIL_HOST_PASSWORD = 'zgei ypdc zzvy ggad'  # La contraseña de aplicación generada
+    EMAIL_HOST_PASSWORD = 'zgei ypdc zzvy ggad'  # App gmail password
 
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
