@@ -103,12 +103,14 @@ if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 587
+    EMAIL_HOST = 'smtp.office365.com'  # Host de SMTP para Hotmail/Outlook
+    EMAIL_PORT = 587  # Puerto para conexión segura
     EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False  # Asegúrate de que SSL esté desactivado, ya que estamos usando TLS
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # Variable de entorno para el correo
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # Variable de entorno para la contraseña
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 
 
 # CoinPayments API-avaimet
