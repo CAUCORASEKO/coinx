@@ -55,7 +55,7 @@ def register_view(request):
             else:
                 try:
                     # Muutetaan avain tavuiksi ja luodaan Fernet-objekti
-                    fernet = Fernet(settings.ENCRYPTION_KEY.encode())
+                    fernet = Fernet(settings.ENCRYPTION_KEY)
                 except Exception as e:
                     logger.error(f"Encryption error: {e}")
                     messages.error(request, 'Invalid encryption key configuration. Please contact support.')
