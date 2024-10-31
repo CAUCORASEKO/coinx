@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 def index(request):
     return render(request, 'web/index.html')
 
+
 # -------------------------------------------
 # Käyttäjän rekisteröinti- ja kirjautumisnäkymät
 # -------------------------------------------
@@ -62,9 +63,9 @@ def register_view(request):
                     return redirect('register')
 
             try:
-                # Salaa ja tallenna API-avaimet
-                api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode())
-                api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode())
+                # Salaa ja tallenna API-avaimet bytes muodossa
+                api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode('utf-8'))
+                api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode('utf-8'))
             except Exception as e:
                 # Käsittele mahdolliset salausvirheet
                 logger.error(f"Encryption error: {e}")
@@ -81,7 +82,7 @@ def register_view(request):
                 postal_code=form.cleaned_data['postal_code'],
                 phone_number=form.cleaned_data.get('phone_number', ''),  # Valinnainen kenttä
                 platform=form.cleaned_data['platform'],
-                api_key_encrypted=api_key_encrypted,
+                api_key_encrypted=api_key_encrypted,  # API-avaimet tallennetaan kryptattuna
                 api_secret_encrypted=api_secret_encrypted,
             )
 
@@ -94,6 +95,7 @@ def register_view(request):
         form = RegistrationForm()
 
     return render(request, 'web/register.html', {'form': form})
+
 
 
 # Funktio vahvistusviestin lähettämiseksi
@@ -146,8 +148,13 @@ def dashboard_view(request):
 
     # Decryptataan käyttäjän API-avaimet
     fernet = Fernet(settings.ENCRYPTION_KEY)
-    api_key = fernet.decrypt(user_profile.api_key_encrypted).decode()
-    api_secret = fernet.decrypt(user_profile.api_secret_encrypted).decode()
+    try:
+        api_key = fernet.decrypt(user_profile.api_key_encrypted).decode('utf-8')
+        api_secret = fernet.decrypt(user_profile.api_secret_encrypted).decode('utf-8')
+    except Exception as e:
+        logger.error(f"Error decrypting API keys: {e}")
+        messages.error(request, 'An error occurred with your API keys. Please update them and try again.')
+        return redirect('update_api_keys')
 
     # Luo Binance-asiakas käyttäjän avaimilla
     client = FuturesClient(api_key, api_secret)
@@ -184,7 +191,6 @@ def dashboard_view(request):
                             'price_24h': price  # Tämä voidaan muuttaa 24h hintamuutokseksi.
                         })
                     except Exception as e:
-                        # Jos kolikolle ei ole kaupankäyntiparia, ohita se
                         logger.error(f"Virhe kolikkotietojen hakemisessa {symbol}: {e}")
 
         coins_count = len(coins)
@@ -217,16 +223,21 @@ def update_api_keys(request):
             # Päivitä API-avaimet
             user_profile = UserProfile.objects.get(user=request.user)
             fernet = Fernet(settings.ENCRYPTION_KEY)
-            user_profile.api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode())
-            user_profile.api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode())
-            user_profile.save()
+            try:
+                user_profile.api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode('utf-8'))
+                user_profile.api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode('utf-8'))
+                user_profile.save()
+                messages.success(request, 'Your API keys have been updated.')
+            except Exception as e:
+                logger.error(f"Encryption error: {e}")
+                messages.error(request, 'Failed to update your API keys. Please try again.')
 
-            messages.success(request, 'Your API keys have been updated.')
             return redirect('dashboard')
     else:
         form = ApiKeyForm()
 
     return render(request, 'web/update_api_keys.html', {'form': form})
+
 
 # -----------------------------
 # Käyttäjänimen palautus
