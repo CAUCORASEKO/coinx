@@ -140,45 +140,39 @@ def confirm_email(request, token):
 # Dashboard-näkymät
 # --------------------------
 
-from binance.client import Client as FuturesClient  # Tämä on jo tuotu nimellä FuturesClient
 
 @login_required
 def dashboard_view(request):
+    # Hae käyttäjän profiili
     user_profile = get_object_or_404(UserProfile, user=request.user)
 
-    # Decryptataan käyttäjän API-avaimet
-    fernet = Fernet(settings.ENCRYPTION_KEY)
-    try:
-        api_key = fernet.decrypt(user_profile.api_key_encrypted).decode('utf-8')
-        api_secret = fernet.decrypt(user_profile.api_secret_encrypted).decode('utf-8')
-    except Exception as e:
-        logger.error(f"Error decrypting API keys: {e}")
-        messages.error(request, 'An error occurred with your API keys. Please update them and try again.')
-        return redirect('update_api_keys')
+    # Tarkista, ovatko API-avaimet tyhjiä tai puuttuvat
+    if not user_profile.api_key_encrypted or not user_profile.api_secret_encrypted:
+        # Jos avaimet puuttuvat, ohjaa API-avainten päivityssivulle
+        messages.info(request, 'Päivitä API-avaimesi päästäksesi hallintapaneeliin.')
+        return redirect('update_api_keys')  # Varmista, että 'update_api_keys' on määritelty URL-tiedostossasi
 
-    # Luo Binance-asiakas käyttäjän avaimilla
+    # Jos avaimet ovat olemassa, jatka niiden purkamista ja lataa *hallintapaneeli*
+    fernet = Fernet(settings.ENCRYPTION_KEY)
+    api_key = fernet.decrypt(user_profile.api_key_encrypted).decode()
+    api_secret = fernet.decrypt(user_profile.api_secret_encrypted).decode()
+
     client = FuturesClient(api_key, api_secret)
 
+    # Täällä haetaan käyttäjän tiedot Binancesta ja renderöidään hallintapaneeli
     try:
-        # Hae Spot-tilin saldo
-        account_info = client.get_account()  # Spot-tilin tiedot
+        account_info = client.get_account()
         spot_balance = sum(float(asset['free']) for asset in account_info['balances'] if float(asset['free']) > 0)
-
-        # Hae Futures-tilin saldo
         futures_balance = sum(float(balance['balance']) for balance in client.futures_account_balance() if balance['asset'] == 'USDT')
-
-        # Lasketaan portfolion muutos
         portfolio_change = futures_balance - spot_balance
         portfolio_change_percentage = (portfolio_change / spot_balance) * 100 if spot_balance != 0 else 0
 
-        # Hae Spot-tilin kolikkotiedot (esim. BTC ja ETH)
         coins = []
         for asset in account_info['balances']:
-            if float(asset['free']) > 0:  # Lisää vain, jos saldoa on
+            if float(asset['free']) > 0:
                 symbol = asset['asset']
-                if symbol != 'USDT':  # Vältetään USDT ja muut ei-toivotut kolikot
+                if symbol != 'USDT':
                     try:
-                        # Hae kolikon hinta suhteessa USDT:hen
                         ticker = client.get_symbol_ticker(symbol=symbol + 'USDT')
                         price = float(ticker['price'])
                         coins.append({
@@ -188,7 +182,7 @@ def dashboard_view(request):
                             'available': float(asset['free']),
                             'quantity': float(asset['free']),
                             'price': price,
-                            'price_24h': price  # Tämä voidaan muuttaa 24h hintamuutokseksi.
+                            'price_24h': price
                         })
                     except Exception as e:
                         logger.error(f"Virhe kolikkotietojen hakemisessa {symbol}: {e}")
@@ -196,15 +190,13 @@ def dashboard_view(request):
         coins_count = len(coins)
 
     except Exception as e:
-        logger.error(f"Virhe Binance-tietojen haussa: {e}")
-        # Jos API-yhteys epäonnistuu tai tapahtuu virhe, näytetään simuloidut arvot
+        logger.error(f"Virhe tietojen hakemisessa Binancesta: {e}")
         spot_balance = 0
         futures_balance = 0
         portfolio_change = 0
         portfolio_change_percentage = 0
         coins = []
 
-    # Renderöidään dashboard-sivu signaaleilla ja tiedoilla
     return render(request, 'web/dashboard.html', {
         'spot_balance': spot_balance,
         'futures_balance': futures_balance,
@@ -214,29 +206,35 @@ def dashboard_view(request):
         'coins_count': coins_count,
     })
 
+
+
 # Näkymä API-avainten päivittämiseen
-@login_required
+@login_required  # Varmistaa, että käyttäjä on kirjautunut sisään ennen tämän toiminnon käyttämistä
 def update_api_keys(request):
+    # Tarkistetaan, onko tämä POST-pyyntö, eli lähetettiinkö lomake
     if request.method == 'POST':
-        form = ApiKeyForm(request.POST)
+        form = ApiKeyForm(request.POST)  # Luodaan lomakeobjekti käyttäjän syöttämistä tiedoista
+        # Tarkistetaan, onko lomake oikein täytetty ja validoitu
         if form.is_valid():
-            # Päivitä API-avaimet
+            # Hae kirjautuneen käyttäjän profiili
             user_profile = UserProfile.objects.get(user=request.user)
-            fernet = Fernet(settings.ENCRYPTION_KEY)
-            try:
-                user_profile.api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode('utf-8'))
-                user_profile.api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode('utf-8'))
-                user_profile.save()
-                messages.success(request, 'Your API keys have been updated.')
-            except Exception as e:
-                logger.error(f"Encryption error: {e}")
-                messages.error(request, 'Failed to update your API keys. Please try again.')
+            fernet = Fernet(settings.ENCRYPTION_KEY)  # Käytetään salausavainta tietojen salaamiseen
 
-            return redirect('dashboard')
+            # Salaa ja tallenna API-avain käyttäjäprofiiliin
+            user_profile.api_key_encrypted = fernet.encrypt(form.cleaned_data['api_key'].encode('utf-8'))
+            # Salaa ja tallenna API-salaisuus käyttäjäprofiiliin
+            user_profile.api_secret_encrypted = fernet.encrypt(form.cleaned_data['api_secret'].encode('utf-8'))
+            user_profile.save()  # Tallennetaan päivitykset tietokantaan
+
+            # Näytetään käyttäjälle onnistumisviesti
+            messages.success(request, 'API-avaimesi on päivitetty.')
+            return redirect('dashboard')  # Ohjaa käyttäjä takaisin hallintapaneeliin päivityksen jälkeen
     else:
-        form = ApiKeyForm()
+        form = ApiKeyForm()  # Jos pyyntö ei ole POST, luodaan tyhjä lomake käyttäjän täytettäväksi
 
+    # Renderöi (näyttää) update_api_keys.html-mallin, jossa on lomake
     return render(request, 'web/update_api_keys.html', {'form': form})
+
 
 
 # -----------------------------
